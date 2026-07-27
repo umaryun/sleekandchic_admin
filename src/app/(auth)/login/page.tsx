@@ -89,7 +89,7 @@ export default function LoginPage() {
           </div>
           <div>
             <CardTitle className="text-2xl font-serif font-bold tracking-tight gold-gradient-text uppercase">
-              Slickandchic
+              Sleekandchic
             </CardTitle>
             <CardDescription className="text-xs uppercase tracking-widest text-muted-foreground font-semibold mt-1">
               Luxury E-Commerce Admin Console
