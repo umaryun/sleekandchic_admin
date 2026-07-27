@@ -1,0 +1,234 @@
+"use client";
+
+import React, { use, useState } from "react";
+import { useRouter } from "next/navigation";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import {
+  ArrowLeft,
+  ShoppingCart,
+  User,
+  MapPin,
+  CreditCard,
+  PackageCheck,
+  Loader2,
+  AlertTriangle,
+} from "lucide-react";
+import { toast } from "sonner";
+
+import { apiClient } from "@/src/lib/api-client";
+import { Order } from "@/src/lib/types/api";
+import { formatNGN, formatDate } from "@/lib/utils";
+
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/src/components/ui/card";
+import { Button } from "@/src/components/ui/button";
+import { Badge } from "@/src/components/ui/badge";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/src/components/ui/table";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select";
+import { Skeleton } from "@/src/components/ui/skeleton";
+
+export default function OrderDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = use(params);
+  const router = useRouter();
+  const queryClient = useQueryClient();
+
+  const { data: ordersData, isLoading, isError } = useQuery<{ orders: Order[] }>({
+    queryKey: ["orders-detail", id],
+    queryFn: () => apiClient<{ orders: Order[] }>(`/admin/orders?search=${id}`),
+  });
+
+  const order = ordersData?.orders.find((o) => o.id === id || o.orderNumber === id) || ordersData?.orders[0];
+
+  const [selectedStatus, setSelectedStatus] = useState<Order["status"] | "">("");
+
+  const updateStatusMutation = useMutation({
+    mutationFn: (status: Order["status"]) =>
+      apiClient("/admin/orders", {
+        method: "PUT",
+        body: JSON.stringify({ orderId: order!.id, status }),
+        showSuccessToast: true,
+        successMessage: `Order status updated to ${status}`,
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["orders"] });
+      queryClient.invalidateQueries({ queryKey: ["orders-detail", id] });
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <div className="space-y-6 max-w-4xl mx-auto p-4">
+        <Skeleton className="h-8 w-48" />
+        <Skeleton className="h-48 w-full" />
+        <Skeleton className="h-64 w-full" />
+      </div>
+    );
+  }
+
+  if (isError || !order) {
+    return (
+      <div className="flex flex-col items-center justify-center py-16 text-center space-y-4">
+        <AlertTriangle className="h-12 w-12 text-rose-500" />
+        <h3 className="text-lg font-semibold">Order Not Found</h3>
+        <Button onClick={() => router.push("/orders")} variant="outline">
+          Back to Orders
+        </Button>
+      </div>
+    );
+  }
+
+  return (
+    <div className="space-y-6 max-w-5xl mx-auto">
+      {/* Page Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <Button
+            variant="outline"
+            size="icon"
+            onClick={() => router.back()}
+            className="rounded-full"
+          >
+            <ArrowLeft className="h-4 w-4" />
+          </Button>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="text-2xl font-bold tracking-tight ">
+                Order #{order.orderNumber}
+              </h1>
+              <Badge variant={order.status === "delivered" ? "success" : "warning"}>
+                {order.status}
+              </Badge>
+            </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Placed on {formatDate(order.createdAt)}
+            </p>
+          </div>
+        </div>
+
+        {/* Status Quick Updater */}
+        <div className="flex items-center gap-2">
+          <Select
+            value={selectedStatus || order.status}
+            onValueChange={(val) => {
+              setSelectedStatus(val as Order["status"]);
+              updateStatusMutation.mutate(val as Order["status"]);
+            }}
+          >
+            <SelectTrigger className="w-44">
+              <SelectValue placeholder="Change Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="paid">Paid</SelectItem>
+              <SelectItem value="processing">Processing</SelectItem>
+              <SelectItem value="shipped">Shipped</SelectItem>
+              <SelectItem value="delivered">Delivered</SelectItem>
+              <SelectItem value="cancelled">Cancelled</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      {/* Info Cards Grid */}
+      <div className="grid gap-6 sm:grid-cols-3">
+        {/* Customer Info */}
+        <Card className="glass-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <User className="h-4 w-4 text-amber-500" /> Customer Information
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs space-y-1">
+            <p className="font-semibold text-sm text-foreground">
+              {order.customerName || "Guest Customer"}
+            </p>
+            <p className="text-muted-foreground">{order.customerEmail || order.guestEmail || "No email"}</p>
+          </CardContent>
+        </Card>
+
+        {/* Payment Summary */}
+        <Card className="glass-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <CreditCard className="h-4 w-4 text-emerald-500" /> Payment Summary
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs space-y-1">
+            <p className="font-bold text-base text-foreground">
+              {formatNGN(order.totalAmount)}
+            </p>
+            <div className="flex items-center gap-2">
+              <span className="text-muted-foreground">Status:</span>
+              <Badge variant={order.paymentStatus === "paid" ? "success" : "warning"}>
+                {order.paymentStatus}
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Shipping Address */}
+        <Card className="glass-card">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <MapPin className="h-4 w-4 text-blue-500" /> Shipping Destination
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="text-xs space-y-1 text-muted-foreground">
+            {order.shippingAddress ? (
+              <>
+                <p className="font-medium text-foreground">{order.shippingAddress.street}</p>
+                <p>{order.shippingAddress.city}, {order.shippingAddress.state}</p>
+                <p>{order.shippingAddress.country} {order.shippingAddress.postalCode}</p>
+              </>
+            ) : (
+              <p>Standard Delivery Address</p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Line Items Table */}
+      <Card className="glass-card">
+        <CardHeader>
+          <CardTitle className="text-base font-semibold flex items-center gap-2">
+            <PackageCheck className="h-5 w-5 text-amber-500" /> Order Line Items
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!order.items || order.items.length === 0 ? (
+            <p className="text-sm text-muted-foreground py-4 text-center">
+              No line item breakdown available.
+            </p>
+          ) : (
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Item Name</TableHead>
+                  <TableHead>Variant</TableHead>
+                  <TableHead>Unit Price (₦)</TableHead>
+                  <TableHead>Qty</TableHead>
+                  <TableHead className="text-right">Total Price (₦)</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {order.items.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-semibold">{item.productName}</TableCell>
+                    <TableCell className="text-xs text-muted-foreground">
+                      {item.size && <span>Size: {item.size} </span>}
+                      {item.color && <span>Color: {item.color}</span>}
+                    </TableCell>
+                    <TableCell>{formatNGN(item.unitPrice)}</TableCell>
+                    <TableCell className="font-bold">{item.quantity}</TableCell>
+                    <TableCell className="text-right font-bold">
+                      {formatNGN(item.totalPrice)}
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          )}
+        </CardContent>
+      </Card>
+    </div>
+  );
+}
