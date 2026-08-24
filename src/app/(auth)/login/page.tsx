@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
-import { setStoredToken } from "@/src/lib/auth-client";
+import { setStoredToken, setStoredAdmin } from "@/src/lib/auth-client";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -32,7 +32,7 @@ export default function LoginPage() {
   } = useForm<LoginFormValues>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "admin@slickandchic.com",
+      email: "",
       password: "",
     },
   });
@@ -62,9 +62,19 @@ export default function LoginPage() {
         throw new Error(data.message || data.error || "Authentication failed. Please check credentials.");
       }
 
-      // Store Bearer token
+      // Store Bearer token & Admin Profile
       const token = data.token || data.session?.token || data.accessToken || "session_token_granted";
       setStoredToken(token);
+
+      const user = data.user || data.session?.user;
+      setStoredAdmin({
+        id: user?.id || "admin-main",
+        name: user?.name || "Admin Manager",
+        email: user?.email || values.email,
+        role: (user?.role === "super_admin" || user?.role === "admin" ? user.role : "super_admin"),
+        status: "active",
+        createdAt: user?.createdAt || new Date().toISOString(),
+      });
 
       toast.success("Successfully logged in to Slickandchic Admin!");
       router.push("/");
@@ -106,7 +116,7 @@ export default function LoginPage() {
                 <Input
                   id="email"
                   type="email"
-                  placeholder="admin@slickandchic.com"
+                  placeholder="Enter your email"
                   className="pl-9"
                   {...register("email")}
                 />

@@ -23,6 +23,7 @@ const badgeVariants = cva(
         sale: "border-rose-500/30 bg-rose-500/20 text-rose-500 font-semibold uppercase tracking-wider text-[10px]",
         new: "border-amber-500/30 bg-amber-500/20 text-amber-500 font-semibold uppercase tracking-wider text-[10px]",
         hot: "border-orange-500/30 bg-orange-500/20 text-orange-500 font-semibold uppercase tracking-wider text-[10px]",
+        luxury: "border-amber-500/40 gold-gradient-bg text-black font-bold uppercase tracking-wider text-[10px] shadow-sm",
       },
     },
     defaultVariants: {

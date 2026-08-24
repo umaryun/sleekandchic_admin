@@ -43,7 +43,10 @@ const slideSchema = z.object({
   linkText: z.string().optional(),
   href: z.string().optional(),
   imageUrl: z.string().min(1, "Slide image is required"),
-  displayOrder: z.number().int(),
+  displayOrder: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? 0 : Number(val)),
+    z.number().int()
+  ),
   isActive: z.boolean(),
 });
 
@@ -69,7 +72,7 @@ export default function HeroSlidesPage() {
     reset,
     watch,
     formState: { errors },
-  } = useForm<SlideFormValues>({
+  } = useForm({
     resolver: zodResolver(slideSchema),
     defaultValues: {
       boldText: "",
@@ -310,7 +313,7 @@ export default function HeroSlidesPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit((data) => saveMutation.mutate(data))} className="space-y-4">
+          <form onSubmit={handleSubmit((data) => saveMutation.mutate(data as SlideFormValues))} className="space-y-4">
             <div className="space-y-2">
               <Label>Banner Image *</Label>
               <div className="space-y-2">

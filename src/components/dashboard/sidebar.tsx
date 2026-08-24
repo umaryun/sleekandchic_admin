@@ -14,6 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Crown,
+  ShieldCheck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
@@ -53,6 +54,11 @@ export const NAV_ITEMS = [
     title: "Customers",
     href: "/customers",
     icon: Users,
+  },
+  {
+    title: "Admin Team",
+    href: "/team",
+    icon: ShieldCheck,
   },
 ];
 

@@ -39,11 +39,20 @@ const discountSchema = z.object({
     .min(1, "Promo code is required")
     .transform((s) => s.toUpperCase()),
   discountType: z.enum(["percentage", "fixed_amount"]),
-  value: z.number().positive("Discount value must be positive"),
-  minOrderAmount: z.number().positive().optional(),
-  maxUses: z.number().int().positive().optional(),
-  startsAt: z.string().optional(),
-  expiresAt: z.string().optional(),
+  value: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? undefined : Number(val)),
+    z.number({ message: "Discount value must be positive" }).positive("Discount value must be positive")
+  ),
+  minOrderAmount: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? undefined : Number(val)),
+    z.number().positive("Minimum order amount must be positive").optional()
+  ),
+  maxUses: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? undefined : Number(val)),
+    z.number().int().positive("Max uses must be a positive integer").optional()
+  ),
+  startsAt: z.preprocess((val) => (!val ? undefined : val), z.string().optional()),
+  expiresAt: z.preprocess((val) => (!val ? undefined : val), z.string().optional()),
   isActive: z.boolean(),
 });
 
@@ -66,7 +75,7 @@ export default function DiscountsPage() {
     reset,
     watch,
     formState: { errors },
-  } = useForm<DiscountFormValues>({
+  } = useForm({
     resolver: zodResolver(discountSchema),
     defaultValues: {
       code: "",
@@ -232,7 +241,7 @@ export default function DiscountsPage() {
             </DialogDescription>
           </DialogHeader>
 
-          <form onSubmit={handleSubmit((data) => createMutation.mutate(data))} className="space-y-4">
+          <form onSubmit={handleSubmit((data) => createMutation.mutate(data as DiscountFormValues))} className="space-y-4">
             <div className="space-y-2">
               <Label htmlFor="code">Coupon Code *</Label>
               <Input

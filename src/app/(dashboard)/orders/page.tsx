@@ -55,6 +55,7 @@ export default function OrdersPage() {
 
   const [statusModalOrder, setStatusModalOrder] = useState<Order | null>(null);
   const [newStatus, setNewStatus] = useState<Order["status"]>("processing");
+  const [newPaymentStatus, setNewPaymentStatus] = useState<Order["paymentStatus"]>("unpaid");
 
   // Fetch Orders
   const { data, isLoading, isError, refetch } = useQuery<OrderListResponse>({
@@ -74,12 +75,24 @@ export default function OrdersPage() {
 
   // Update Status Mutation
   const updateStatusMutation = useMutation({
-    mutationFn: ({ orderId, status }: { orderId: string; status: Order["status"] }) =>
+    mutationFn: ({
+      orderId,
+      status,
+      paymentStatus,
+    }: {
+      orderId: string;
+      status: Order["status"];
+      paymentStatus: Order["paymentStatus"];
+    }) =>
       apiClient("/admin/orders", {
         method: "PUT",
-        body: JSON.stringify({ orderId, status }),
+        body: JSON.stringify({
+          orderId,
+          status,
+          paymentStatus: status === "paid" && paymentStatus === "unpaid" ? "paid" : paymentStatus,
+        }),
         showSuccessToast: true,
-        successMessage: `Order status updated to ${status}`,
+        successMessage: `Order updated successfully`,
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["orders"] });
@@ -175,82 +188,89 @@ export default function OrdersPage() {
           <div className="p-8 text-center text-muted-foreground">
             Failed to load orders list.
           </div>
-        ) : data.orders.length === 0 ? (
-          <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground space-y-3">
-            <ShoppingCart className="h-10 w-10 text-muted-foreground/50" />
-            <p className="text-base font-medium">No orders found</p>
-          </div>
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Order Number</TableHead>
-                <TableHead>Customer</TableHead>
-                <TableHead>Total Amount</TableHead>
-                <TableHead>Payment</TableHead>
-                <TableHead>Fulfillment Status</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Actions</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {data.orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell className="font-bold text-foreground">
-                    <Link href={`/orders/${order.id}`} className="hover:text-amber-500 transition-colors">
-                      {order.orderNumber}
-                    </Link>
-                  </TableCell>
+        ) : (() => {
+            const orders = Array.isArray(data) ? data : (data as OrderListResponse).orders ?? [];
+            if (orders.length === 0) {
+              return (
+                <div className="flex flex-col items-center justify-center p-12 text-center text-muted-foreground space-y-3">
+                  <ShoppingCart className="h-10 w-10 text-muted-foreground/50" />
+                  <p className="text-base font-medium">No orders found</p>
+                </div>
+              );
+            }
+            return (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Order Number</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Total Amount</TableHead>
+                    <TableHead>Payment</TableHead>
+                    <TableHead>Fulfillment Status</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {orders.map((order) => (
+                    <TableRow key={order.id}>
+                      <TableCell className="font-bold text-foreground">
+                        <Link href={`/orders/${order.id}`} className="hover:text-amber-500 transition-colors">
+                          {order.orderNumber}
+                        </Link>
+                      </TableCell>
 
-                  <TableCell className="text-xs">
-                    <div className="flex flex-col">
-                      <span className="font-semibold">{order.customerName || "Guest User"}</span>
-                      <span className="text-muted-foreground">{order.customerEmail || "No email"}</span>
-                    </div>
-                  </TableCell>
+                      <TableCell className="text-xs">
+                        <div className="flex flex-col">
+                          <span className="font-semibold">{order.customerName || "Guest User"}</span>
+                          <span className="text-muted-foreground">{order.customerEmail || "No email"}</span>
+                        </div>
+                      </TableCell>
 
-                  <TableCell className="font-bold text-sm">
-                    {formatNGN(order.totalAmount)}
-                  </TableCell>
+                      <TableCell className="font-bold text-sm">
+                        {formatNGN(order.totalAmount)}
+                      </TableCell>
 
-                  <TableCell>
-                    <Badge
-                      variant={order.paymentStatus === "paid" ? "success" : "warning"}
-                    >
-                      {order.paymentStatus}
-                    </Badge>
-                  </TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={order.paymentStatus === "paid" ? "success" : "warning"}
+                        >
+                          {order.paymentStatus}
+                        </Badge>
+                      </TableCell>
 
-                  <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell>{getStatusBadge(order.status)}</TableCell>
 
-                  <TableCell className="text-xs text-muted-foreground">
-                    {formatDate(order.createdAt)}
-                  </TableCell>
+                      <TableCell className="text-xs text-muted-foreground">
+                        {formatDate(order.createdAt)}
+                      </TableCell>
 
-                  <TableCell className="text-right">
-                    <div className="flex items-center justify-end gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => {
-                          setStatusModalOrder(order);
-                          setNewStatus(order.status);
-                        }}
-                      >
-                        <Edit className="h-4 w-4" />
-                      </Button>
-                      <Link href={`/orders/${order.id}`}>
-                        <Button variant="ghost" size="icon">
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                      </Link>
-                    </div>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        )}
+                      <TableCell className="text-right">
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => {
+                              setStatusModalOrder(order);
+                              setNewStatus(order.status);
+                              setNewPaymentStatus(order.paymentStatus || "unpaid");
+                            }}
+                          >
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Link href={`/orders/${order.id}`}>
+                            <Button variant="ghost" size="icon">
+                              <Eye className="h-4 w-4" />
+                            </Button>
+                          </Link>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            );
+          })()}
       </div>
 
       {/* Status Update Dialog */}
@@ -259,16 +279,22 @@ export default function OrdersPage() {
           <DialogHeader>
             <DialogTitle>Update Order Status</DialogTitle>
             <DialogDescription>
-              Change fulfillment status for Order #{statusModalOrder?.orderNumber}
+              Update fulfillment and payment status for Order #{statusModalOrder?.orderNumber}
             </DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <label className="text-xs font-semibold">Select New Status</label>
+              <label className="text-xs font-semibold">Fulfillment Status</label>
               <Select
                 value={newStatus}
-                onValueChange={(val) => setNewStatus(val as Order["status"])}
+                onValueChange={(val) => {
+                  const s = val as Order["status"];
+                  setNewStatus(s);
+                  if (s === "paid" && newPaymentStatus === "unpaid") {
+                    setNewPaymentStatus("paid");
+                  }
+                }}
               >
                 <SelectTrigger>
                   <SelectValue />
@@ -282,6 +308,26 @@ export default function OrdersPage() {
                   <SelectItem value="cancelled">Cancelled</SelectItem>
                 </SelectContent>
               </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-semibold">Payment Status</label>
+              <Select
+                value={newPaymentStatus}
+                onValueChange={(val) => setNewPaymentStatus(val as Order["paymentStatus"])}
+              >
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="unpaid">Unpaid</SelectItem>
+                  <SelectItem value="paid">Paid (Includes in Dashboard Revenue)</SelectItem>
+                  <SelectItem value="refunded">Refunded</SelectItem>
+                </SelectContent>
+              </Select>
+              <p className="text-[11px] text-muted-foreground">
+                Revenue on the dashboard updates based on orders with <strong>Paid</strong> payment status.
+              </p>
             </div>
           </div>
 
@@ -297,6 +343,7 @@ export default function OrdersPage() {
                 updateStatusMutation.mutate({
                   orderId: statusModalOrder.id,
                   status: newStatus,
+                  paymentStatus: newPaymentStatus,
                 })
               }
             >
@@ -305,7 +352,7 @@ export default function OrdersPage() {
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...
                 </>
               ) : (
-                "Save Status"
+                "Save Changes"
               )}
             </Button>
           </DialogFooter>

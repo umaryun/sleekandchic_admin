@@ -34,21 +34,42 @@ import { Skeleton } from "@/src/components/ui/skeleton";
 const productSchema = z.object({
   name: z.string().min(1, "Product name is required"),
   description: z.string().optional(),
-  price: z.coerce.number().positive("Price must be a positive number"),
-  originalPrice: z.coerce.number().positive("Original price must be positive").optional(),
+  price: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? undefined : Number(val)),
+    z.number({ message: "Price must be a positive number" }).positive("Price must be a positive number")
+  ),
+  originalPrice: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? undefined : Number(val)),
+    z.number().positive("Original price must be positive").optional()
+  ),
   sku: z.string().optional(),
   brand: z.string().optional(),
-  badge: z.enum(["sale", "new", "hot"]).optional(),
-  discount: z.coerce.number().min(0, "Discount cannot be negative").max(100, "Discount cannot exceed 100%").optional(),
-  categoryId: z.string().optional(),
+  badge: z.preprocess(
+    (val) => (!val || val === "none" ? undefined : val),
+    z.enum(["sale", "new", "hot"]).optional()
+  ),
+  discount: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? undefined : Number(val)),
+    z.number().min(0, "Discount cannot be negative").max(100, "Discount cannot exceed 100%").optional()
+  ),
+  categoryId: z.preprocess(
+    (val) => (!val || val === "none" ? undefined : val),
+    z.string().optional()
+  ),
   inStock: z.boolean(),
   variants: z.array(
     z.object({
       id: z.string().optional(),
       size: z.string().optional(),
       color: z.string().optional(),
-      stockQuantity: z.coerce.number().int().min(0),
-      priceOverride: z.coerce.number().positive().optional(),
+      stockQuantity: z.preprocess(
+        (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? 0 : Number(val)),
+        z.number().int().min(0, "Stock quantity must be at least 0")
+      ),
+      priceOverride: z.preprocess(
+        (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? undefined : Number(val)),
+        z.number().positive("Price override must be positive").optional()
+      ),
     })
   ),
 });
@@ -276,7 +297,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               <div className="space-y-2">
                 <Label htmlFor="categoryId">Category</Label>
                 <Select
-                  value={watch("categoryId") || "none"}
+                  value={(watch("categoryId") as string) || "none"}
                   onValueChange={(val) => setValue("categoryId", val === "none" ? "" : val)}
                 >
                   <SelectTrigger>
@@ -296,7 +317,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               <div className="space-y-2">
                 <Label htmlFor="badge">Promotional Badge</Label>
                 <Select
-                  value={watch("badge") || "none"}
+                  value={(watch("badge") as string) || "none"}
                   onValueChange={(val) => setValue("badge", val === "none" ? undefined : (val as "sale" | "new" | "hot"))}
                 >
                   <SelectTrigger>
