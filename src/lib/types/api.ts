@@ -155,7 +155,7 @@ export interface CreateCategoryInput {
   displayOrder?: number;
 }
 
-export interface UpdateCategoryInput extends Partial<CreateCategoryInput> {}
+export type UpdateCategoryInput = Partial<CreateCategoryInput>;
 
 // ──────────────────────────────────────────────
 // Orders
@@ -241,7 +241,7 @@ export interface CreateDiscountInput {
   isActive?: boolean;
 }
 
-export interface UpdateDiscountInput extends Partial<CreateDiscountInput> {}
+export type UpdateDiscountInput = Partial<CreateDiscountInput>;
 
 // ──────────────────────────────────────────────
 // Hero Slides
@@ -269,7 +269,7 @@ export interface CreateHeroSlideInput {
   isActive?: boolean;
 }
 
-export interface UpdateHeroSlideInput extends Partial<CreateHeroSlideInput> {}
+export type UpdateHeroSlideInput = Partial<CreateHeroSlideInput>;
 
 // ──────────────────────────────────────────────
 // Customers
@@ -302,4 +302,39 @@ export interface UploadUrlResponse {
   publicUrl: string;
   path: string;
   bucket: string;
+}
+
+// ──────────────────────────────────────────────
+// Admin Team & Roles (RBAC)
+// ──────────────────────────────────────────────
+
+export type AdminRole = "super_admin" | "admin";
+
+export interface AdminUser {
+  id: string;
+  name: string;
+  email: string;
+  role: AdminRole;
+  status: "active" | "invited" | "suspended";
+  avatarUrl?: string | null;
+  createdAt: string;
+  lastLoginAt?: string | null;
+}
+
+export interface AdminListResponse {
+  admins: AdminUser[];
+  pagination?: PaginationMeta;
+}
+
+export interface InviteAdminInput {
+  name: string;
+  email: string;
+  role: AdminRole;
+  password?: string;
+}
+
+export interface UpdateAdminInput {
+  adminId: string;
+  role?: AdminRole;
+  status?: "active" | "suspended";
 }

@@ -40,8 +40,11 @@ const categorySchema = z.object({
   name: z.string().min(1, "Category name is required"),
   slug: z.string().optional(),
   iconUrl: z.string().optional(),
-  parentId: z.string().optional(),
-  displayOrder: z.number().int(),
+  parentId: z.preprocess((val) => (!val || val === "none" ? undefined : val), z.string().optional()),
+  displayOrder: z.preprocess(
+    (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? 0 : Number(val)),
+    z.number().int()
+  ),
 });
 
 type CategoryFormValues = z.infer<typeof categorySchema>;
@@ -66,7 +69,7 @@ export default function CategoriesPage() {
     reset,
     watch,
     formState: { errors },
-  } = useForm<CategoryFormValues>({
+  } = useForm({
     resolver: zodResolver(categorySchema),
     defaultValues: {
       displayOrder: 0,
@@ -315,7 +318,7 @@ export default function CategoriesPage() {
           </DialogHeader>
 
           <form
-            onSubmit={handleSubmit((data) => saveMutation.mutate(data))}
+            onSubmit={handleSubmit((data) => saveMutation.mutate(data as CategoryFormValues))}
             className="space-y-4"
           >
             <div className="space-y-2">
@@ -331,7 +334,7 @@ export default function CategoriesPage() {
             <div className="space-y-2">
               <Label htmlFor="parentId">Parent Category</Label>
               <Select
-                value={watch("parentId") || "none"}
+                value={(watch("parentId") as string) || "none"}
                 onValueChange={(val) => setValue("parentId", val === "none" ? "" : val)}
               >
                 <SelectTrigger>

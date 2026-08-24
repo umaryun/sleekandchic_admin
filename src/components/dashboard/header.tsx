@@ -23,8 +23,10 @@ import {
 } from "@/src/components/ui/dropdown-menu";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/src/components/ui/sheet";
 import { Avatar, AvatarFallback } from "@/src/components/ui/avatar";
+import { Badge } from "@/src/components/ui/badge";
 import { Sidebar, NAV_ITEMS } from "./sidebar";
-import { removeStoredToken } from "@/src/lib/auth-client";
+import { removeStoredToken, useCurrentAdmin } from "@/src/lib/auth-client";
+import { ShieldCheck, Crown } from "lucide-react";
 
 export function Header() {
   const pathname = usePathname();
@@ -32,6 +34,7 @@ export function Header() {
   const { setTheme, theme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
+  const { admin, isSuperAdmin } = useCurrentAdmin();
 
   useEffect(() => {
     setMounted(true);
@@ -40,6 +43,16 @@ export function Header() {
   const handleLogout = () => {
     removeStoredToken();
     router.push("/login");
+  };
+
+  const getInitials = (name?: string) => {
+    if (!name) return "AD";
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
   };
 
   // Generate breadcrumb items
@@ -129,21 +142,30 @@ export function Header() {
               className="relative h-9 w-9 rounded-full ring-2 ring-amber-500/20 p-0 hover:ring-amber-500/50 transition-all"
             >
               <Avatar className="h-9 w-9">
-                <AvatarFallback className="gold-gradient-bg text-black font-bold">
-                  AD
+                <AvatarFallback className="gold-gradient-bg text-black font-bold text-xs">
+                  {getInitials(admin?.name)}
                 </AvatarFallback>
               </Avatar>
             </Button>
           </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56 glass-panel">
+          <DropdownMenuContent align="end" className="w-60 glass-panel">
             <DropdownMenuLabel className="font-normal">
-              <div className="flex flex-col space-y-1">
-                <p className="text-sm font-semibold leading-none">Admin Manager</p>
+              <div className="flex flex-col space-y-1.5">
+                <div className="flex items-center justify-between">
+                  <p className="text-sm font-semibold leading-none">{admin?.name || "Admin Manager"}</p>
+                  <Badge variant={isSuperAdmin ? "luxury" : "secondary"} className="text-[10px] uppercase font-mono px-1.5 py-0">
+                    {isSuperAdmin ? "Super Admin" : "Admin"}
+                  </Badge>
+                </div>
                 <p className="text-xs leading-none text-muted-foreground">
-                  admin@slickandchic.com
+                  {admin?.email || "admin@slickandchic.com"}
                 </p>
               </div>
             </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            <DropdownMenuItem onClick={() => router.push("/team")} className="cursor-pointer">
+              <ShieldCheck className="mr-2 h-4 w-4 text-amber-500" /> Team & Roles
+            </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem onClick={handleLogout} className="text-destructive focus:bg-destructive/10 focus:text-destructive cursor-pointer">
               <LogOut className="mr-2 h-4 w-4" /> Sign out
