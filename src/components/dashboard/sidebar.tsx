@@ -15,6 +15,7 @@ import {
   ChevronRight,
   Crown,
   ShieldCheck,
+  Truck,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/src/components/ui/button";
@@ -39,6 +40,11 @@ export const NAV_ITEMS = [
     title: "Orders",
     href: "/orders",
     icon: ShoppingCart,
+  },
+  {
+    title: "Delivery Fees",
+    href: "/shipping",
+    icon: Truck,
   },
   {
     title: "Discounts",
