@@ -338,3 +338,57 @@ export interface UpdateAdminInput {
   role?: AdminRole;
   status?: "active" | "suspended";
 }
+
+// ──────────────────────────────────────────────
+// Shipping Rates / Delivery Fees
+// ──────────────────────────────────────────────
+
+export interface ShippingRate {
+  id: string;
+  state: string;
+  zone: string;
+  zoneName?: string;
+  standardBase: number;
+  expressBase: number;
+  estimatedDaysStandard: string;
+  estimatedDaysExpress: string;
+  freeShippingThreshold: number;
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface ShippingRatesResponse {
+  shippingRates: ShippingRate[];
+  pagination: PaginationMeta;
+  summary: {
+    total: number;
+    zoneCounts: Record<string, number>;
+    zoneNames: Record<string, string>;
+  };
+}
+
+export interface CreateShippingRateInput {
+  state: string;
+  zone: string;
+  standardBase: number;
+  expressBase: number;
+  estimatedDaysStandard: string;
+  estimatedDaysExpress: string;
+  freeShippingThreshold: number;
+  isActive?: boolean;
+}
+
+export type UpdateShippingRateInput = Partial<CreateShippingRateInput>;
+
+export interface BulkUpdateShippingInput {
+  targetType: "zone" | "ids";
+  zone?: string;
+  ids?: string[];
+  standardBase?: number;
+  expressBase?: number;
+  estimatedDaysStandard?: string;
+  estimatedDaysExpress?: string;
+  freeShippingThreshold?: number;
+  isActive?: boolean;
+}
