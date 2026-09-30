@@ -1,8 +1,6 @@
 import { toast } from "sonner";
 import { getStoredToken, removeStoredToken } from "./auth-client";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000/api/v1";
+import { API_BASE_URL } from "./config";
 
 export interface RequestOptions extends RequestInit {
   showErrorToast?: boolean;

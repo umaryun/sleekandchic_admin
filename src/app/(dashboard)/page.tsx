@@ -46,7 +46,7 @@ export default function OverviewDashboardPage() {
         <AlertTriangle className="h-12 w-12 text-rose-500" />
         <h3 className="text-lg font-semibold">Failed to Load Overview Analytics</h3>
         <p className="text-sm text-muted-foreground max-w-md">
-          {error instanceof Error ? error.message : "Ensure the storefront API server is running on localhost:3000."}
+          {error instanceof Error ? error.message : "The storefront API could not be reached. Check that it is running and try again."}
         </p>
         <Button onClick={() => refetch()} variant="outline">
           <RefreshCw className="mr-2 h-4 w-4" /> Try Again

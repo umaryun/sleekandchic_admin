@@ -2,13 +2,10 @@ import { useState, useEffect } from "react";
 import { createAuthClient } from "better-auth/client";
 import { bearer } from "better-auth/plugins";
 import { AdminUser, AdminRole } from "./types/api";
-
-const API_BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1$/, "") ||
-  "http://localhost:3000";
+import { API_ORIGIN } from "./config";
 
 export const authClient = createAuthClient({
-  baseURL: API_BASE_URL,
+  baseURL: API_ORIGIN,
   plugins: [bearer()],
 });
 

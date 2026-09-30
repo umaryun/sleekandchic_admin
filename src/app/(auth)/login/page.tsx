@@ -13,6 +13,7 @@ import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
 import { setStoredToken, setStoredAdmin } from "@/src/lib/auth-client";
+import { API_ORIGIN } from "@/src/lib/config";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
@@ -41,11 +42,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1$/, "") ||
-        "http://localhost:3000";
-
-      const res = await fetch(`${baseUrl}/api/auth/sign-in/email`, {
+      const res = await fetch(`${API_ORIGIN}/api/auth/sign-in/email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
