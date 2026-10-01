@@ -3,8 +3,8 @@ import Link from "next/link";
 import { ArrowUpRight } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/src/components/ui/table";
-import { Badge } from "@/src/components/ui/badge";
 import { formatNGN, formatDate } from "@/lib/utils";
+import { OrderStatusBadge } from "@/src/components/dashboard/order-status-badge";
 
 interface RecentOrder {
   id: string;
@@ -20,23 +20,6 @@ interface RecentOrdersTableProps {
 }
 
 export function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
-  const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "paid":
-      case "delivered":
-        return <Badge variant="success">{status}</Badge>;
-      case "processing":
-      case "shipped":
-        return <Badge variant="info">{status}</Badge>;
-      case "pending":
-        return <Badge variant="warning">{status}</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive">{status}</Badge>;
-      default:
-        return <Badge variant="outline">{status}</Badge>;
-    }
-  };
-
   return (
     <Card className="col-span-full lg:col-span-8">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -77,7 +60,7 @@ export function RecentOrdersTable({ orders }: RecentOrdersTableProps) {
                   <TableCell className="font-semibold">
                     {formatNGN(order.totalAmount)}
                   </TableCell>
-                  <TableCell>{getStatusBadge(order.status)}</TableCell>
+                  <TableCell><OrderStatusBadge status={order.status} /></TableCell>
                   <TableCell className="text-xs text-muted-foreground">
                     {formatDate(order.createdAt)}
                   </TableCell>

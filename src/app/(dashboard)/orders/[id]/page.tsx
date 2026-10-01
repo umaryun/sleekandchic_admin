@@ -30,16 +30,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Skeleton } from "@/src/components/ui/skeleton";
 import { Textarea } from "@/src/components/ui/textarea";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/src/components/ui/dialog";
+import { ORDER_STATUS_LABELS } from "@/src/components/dashboard/order-status-badge";
 
-// "paid" only appears on older orders; it meant the same as preparing.
-const STATUS_LABELS: Record<Order["status"], string> = {
-  pending: "Pending",
-  paid: "Preparing",
-  processing: "Preparing",
-  shipped: "Shipped",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-};
+const STATUS_LABELS = ORDER_STATUS_LABELS as Record<Order["status"], string>;
 
 const PAYMENT_LABELS: Record<string, string> = { unpaid: "Unpaid", paid: "Paid", refunded: "Refunded" };
 

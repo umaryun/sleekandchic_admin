@@ -21,6 +21,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/src/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
 import { Skeleton } from "@/src/components/ui/skeleton";
+import { OrderStatusBadge } from "@/src/components/dashboard/order-status-badge";
 
 // Status changes happen on the order page, which knows what each order can
 // move to next. "processing" also lists older orders marked "paid".
@@ -32,15 +33,6 @@ const STATUS_TABS: { value: string; label: string }[] = [
   { value: "delivered", label: "Delivered" },
   { value: "cancelled", label: "Cancelled" },
 ];
-
-const STATUS_LABELS: Record<string, string> = {
-  pending: "Pending",
-  paid: "Preparing",
-  processing: "Preparing",
-  shipped: "Shipped",
-  delivered: "Delivered",
-  cancelled: "Cancelled",
-};
 
 export default function OrdersPage() {
   const [activeTab, setActiveTab] = useState("all");
@@ -64,24 +56,6 @@ export default function OrdersPage() {
       return apiClient<OrderListResponse>(`/admin/orders?${params.toString()}`);
     },
   });
-
-  const getStatusBadge = (status: string) => {
-    const label = STATUS_LABELS[status] ?? status;
-    switch (status) {
-      case "delivered":
-        return <Badge variant="success">{label}</Badge>;
-      case "paid":
-      case "processing":
-      case "shipped":
-        return <Badge variant="info">{label}</Badge>;
-      case "pending":
-        return <Badge variant="warning">{label}</Badge>;
-      case "cancelled":
-        return <Badge variant="destructive">{label}</Badge>;
-      default:
-        return <Badge variant="outline">{label}</Badge>;
-    }
-  };
 
   return (
     <div className="space-y-6">
@@ -212,7 +186,7 @@ export default function OrdersPage() {
                         </div>
                       </TableCell>
 
-                      <TableCell>{getStatusBadge(order.status)}</TableCell>
+                      <TableCell><OrderStatusBadge status={order.status} /></TableCell>
 
                       <TableCell className="text-xs text-muted-foreground">
                         {formatDate(order.createdAt)}

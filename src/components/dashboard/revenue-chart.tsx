@@ -19,28 +19,31 @@ interface RevenueChartProps {
 }
 
 export function RevenueChart({ data }: RevenueChartProps) {
+  // Dates are Lagos calendar days ("2026-09-30"); format them as-is.
   const formattedData = data.map((item) => ({
     ...item,
-    formattedDate: new Date(item.date).toLocaleDateString("en-US", {
+    formattedDate: new Date(`${item.date}T00:00:00Z`).toLocaleDateString("en-GB", {
       month: "short",
       day: "numeric",
+      timeZone: "UTC",
     }),
   }));
+  const hasSales = data.some((d) => d.revenue > 0);
 
   return (
     <Card className="col-span-full lg:col-span-8">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <div>
-          <CardTitle className="text-base font-semibold">30-Day Revenue Trend</CardTitle>
+          <CardTitle className="text-base font-semibold">Revenue, last 30 days</CardTitle>
           <p className="text-xs text-muted-foreground mt-0.5">
-            Daily sales revenue in Nigerian Naira (₦)
+            Money received each day (paid orders, by payment date)
           </p>
         </div>
       </CardHeader>
       <CardContent className="pt-4">
-        {data.length === 0 ? (
+        {!hasSales ? (
           <div className="flex h-72 items-center justify-center text-muted-foreground text-sm">
-            No sales revenue data recorded in the last 30 days.
+            No payments received in the last 30 days.
           </div>
         ) : (
           <div className="h-72 w-full">
@@ -88,7 +91,7 @@ export function RevenueChart({ data }: RevenueChartProps) {
                             {formatNGN(dataPoint.revenue)}
                           </p>
                           <p className="text-muted-foreground">
-                            {dataPoint.orders} order(s) placed
+                            {dataPoint.orders} paid order{dataPoint.orders === 1 ? "" : "s"}
                           </p>
                         </div>
                       );

@@ -32,19 +32,37 @@ export interface DailyRevenue {
   orders: number;
 }
 
+/** Dashboard figures. Days are Lagos days; revenue is paid orders by payment date. */
 export interface AnalyticsOverview {
+  timezone: string;
   revenue: {
     total: number;
+    today: number;
+    last30Days: number;
+    previous30Days: number;
+    /** Null when there's nothing to compare with. */
+    changePercent: number | null;
     currency: string;
   };
   orders: {
     total: number;
     byStatus: Record<string, number>;
+    last30Days: number;
+    previous30Days: number;
+    changePercent: number | null;
+    /** Pay-on-delivery orders waiting to be confirmed. */
+    toConfirm: number;
+    /** Confirmed or paid, not shipped yet. */
+    toShip: number;
+    inTransit: number;
   };
+  cashToCollect: { amount: number; orders: number };
   products: {
     total: number;
     lowStock: LowStockItem[];
+    lowStockThreshold: number;
   };
+  /** One entry per day for the last 30 days, oldest first. */
   dailyRevenue: DailyRevenue[];
   recentOrders: {
     id: string;

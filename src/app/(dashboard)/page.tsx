@@ -2,7 +2,7 @@
 
 import React from "react";
 import { useQuery } from "@tanstack/react-query";
-import { DollarSign, ShoppingBag, ShoppingCart, AlertTriangle, RefreshCw } from "lucide-react";
+import { Banknote, ClipboardList, ShoppingCart, AlertTriangle, RefreshCw, Wallet } from "lucide-react";
 import { apiClient } from "@/src/lib/api-client";
 import { AnalyticsOverview } from "@/src/lib/types/api";
 import { StatCard } from "@/src/components/dashboard/stat-card";
@@ -55,7 +55,9 @@ export default function OverviewDashboardPage() {
     );
   }
 
-  const lowStockCount = data.products.lowStock.length;
+  const trend = (percent: number | null) =>
+    percent === null ? undefined : { value: percent, isPositive: percent >= 0 };
+  const { toConfirm, toShip, inTransit } = data.orders;
 
   return (
     <div className="space-y-8">
@@ -63,10 +65,10 @@ export default function OverviewDashboardPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">
-            Analytics Overview
+            Overview
           </h1>
-          <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold mt-1">
-            Real-time sales revenue, inventory alerts & recent customer orders
+          <p className="text-xs text-muted-foreground mt-1">
+            Last 30 days, Lagos time. Changes compare with the 30 days before.
           </p>
         </div>
 
@@ -85,38 +87,38 @@ export default function OverviewDashboardPage() {
       {/* 4 Stat Cards */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         <StatCard
-          title="Total Revenue"
-          value={formatNGN(data.revenue.total)}
-          icon={DollarSign}
-          trend={{ value: 12.5, isPositive: true }}
-          description="Paid order total revenue (NGN)"
+          title="Revenue"
+          value={formatNGN(data.revenue.last30Days)}
+          icon={Banknote}
+          trend={trend(data.revenue.changePercent)}
+          description={`Money received. Today: ${formatNGN(data.revenue.today)}`}
         />
         <StatCard
-          title="Total Orders"
-          value={data.orders.total.toLocaleString()}
+          title="Orders placed"
+          value={data.orders.last30Days.toLocaleString()}
           icon={ShoppingCart}
-          trend={{ value: 8.2, isPositive: true }}
-          description="All time customer orders count"
+          trend={trend(data.orders.changePercent)}
+          description="Not counting cancelled orders"
         />
         <StatCard
-          title="Active Products"
-          value={data.products.total.toLocaleString()}
-          icon={ShoppingBag}
-          description="Total catalog items in store"
+          title="To do"
+          value={(toConfirm + toShip).toLocaleString()}
+          icon={ClipboardList}
+          highlight={toConfirm + toShip > 0}
+          description={`${toConfirm} to confirm · ${toShip} to ship · ${inTransit} out for delivery`}
         />
         <StatCard
-          title="Low Stock Items"
-          value={lowStockCount}
-          icon={AlertTriangle}
-          highlight={lowStockCount > 0}
-          description="Variants with stock ≤ 5 remaining"
+          title="Cash to collect"
+          value={formatNGN(data.cashToCollect.amount)}
+          icon={Wallet}
+          description={`${data.cashToCollect.orders} pay-on-delivery order${data.cashToCollect.orders === 1 ? "" : "s"} not yet paid`}
         />
       </div>
 
       {/* Charts & Low Stock Row */}
       <div className="grid gap-6 lg:grid-cols-12">
         <RevenueChart data={data.dailyRevenue} />
-        <LowStockAlertsWidget items={data.products.lowStock} />
+        <LowStockAlertsWidget items={data.products.lowStock} threshold={data.products.lowStockThreshold} />
       </div>
 
       {/* Recent Orders Table */}
