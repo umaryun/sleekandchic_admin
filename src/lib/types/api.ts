@@ -110,6 +110,8 @@ export interface Product {
   inStock: boolean;
   /** Archived products are hidden from the shop but kept for past orders. */
   status: "draft" | "active" | "archived";
+  /** Shown in the home page's Featured tab. */
+  isFeatured?: boolean;
   image?: string | null;
   images?: ProductImage[];
   variants?: ProductVariant[];

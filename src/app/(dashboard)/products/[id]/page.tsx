@@ -45,9 +45,10 @@ const productSchema = z.object({
   ),
   sku: z.string().optional(),
   brand: z.string().optional(),
+  // SALE isn't chosen: it follows from a was price above the price.
   badge: z.preprocess(
-    (val) => (!val || val === "none" ? undefined : val),
-    z.enum(["sale", "new", "hot"]).optional()
+    (val) => (!val || val === "none" || val === "sale" ? undefined : val),
+    z.enum(["new", "hot"]).optional()
   ),
   discount: z.preprocess(
     (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? undefined : Number(val)),
@@ -58,6 +59,7 @@ const productSchema = z.object({
     z.string().optional()
   ),
   inStock: z.boolean(),
+  isFeatured: z.boolean(),
   variants: z.array(
     z.object({
       id: z.string().optional(),
@@ -73,6 +75,9 @@ const productSchema = z.object({
       ),
     })
   ),
+}).refine((v) => v.originalPrice === undefined || v.originalPrice > v.price, {
+  path: ["originalPrice"],
+  message: "Make the was price higher than the price, or leave it empty",
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -106,6 +111,7 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
     resolver: zodResolver(productSchema),
     defaultValues: {
       inStock: true,
+      isFeatured: false,
     },
   });
 
@@ -124,8 +130,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         originalPrice: product.originalPrice || undefined,
         sku: product.sku || "",
         brand: product.brand || "",
-        badge: product.badge || undefined,
-        discount: product.discount || undefined,
+        badge: product.badge === "new" || product.badge === "hot" ? product.badge : undefined,
+        isFeatured: product.isFeatured ?? false,
         categoryId: product.categoryId || "",
         inStock: product.inStock,
         variants: product.variants?.map((v) => ({
@@ -171,7 +177,8 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
         ...values,
         badge: values.badge ? values.badge : null,
         originalPrice: values.originalPrice ?? null,
-        discount: values.discount ?? null,
+        // Worked out from the prices now; clear any old hand-typed value.
+        discount: null,
         categoryId: values.categoryId || null,
         images: images.length > 0 ? images : [],
         variants: values.variants.map((v) => ({
@@ -281,8 +288,12 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="originalPrice">Original Price (₦)</Label>
-                <Input id="originalPrice" type="number" step="0.01" {...register("originalPrice", { valueAsNumber: true })} />
+                <Label htmlFor="originalPrice">Was price (₦)</Label>
+                <Input id="originalPrice" type="number" step="0.01" placeholder="Optional" {...register("originalPrice", { valueAsNumber: true })} />
+                <p className="text-xs text-muted-foreground">
+                  Higher than the price to show it as on sale, with the % off worked out for you. Leave empty otherwise.
+                </p>
+                {errors.originalPrice && <p className="text-xs font-medium text-destructive">{errors.originalPrice.message}</p>}
               </div>
 
               <div className="space-y-2">
@@ -316,21 +327,21 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="badge">Promotional Badge</Label>
+                <Label htmlFor="badge">Label</Label>
                 <Select
                   value={(watch("badge") as string) || "none"}
-                  onValueChange={(val) => setValue("badge", val === "none" ? undefined : (val as "sale" | "new" | "hot"))}
+                  onValueChange={(val) => setValue("badge", val === "none" ? undefined : (val as "new" | "hot"))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="badge">
                     <SelectValue placeholder="None" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="sale">SALE</SelectItem>
                     <SelectItem value="new">NEW</SelectItem>
                     <SelectItem value="hot">HOT</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">SALE is added by itself when there&apos;s a higher was price.</p>
               </div>
 
               <div className="flex items-center justify-between pt-2 sm:col-span-2">
@@ -342,6 +353,17 @@ export default function EditProductPage({ params }: { params: Promise<{ id: stri
                   id="inStock"
                   checked={watch("inStock")}
                   onCheckedChange={(checked) => setValue("inStock", checked)}
+                />
+              </div>
+              <div className="flex items-center justify-between pt-2 sm:col-span-2">
+                <div>
+                  <Label htmlFor="isFeatured" className="text-sm font-semibold">Show on the home page</Label>
+                  <p className="text-xs text-muted-foreground">Appears in the Featured tab</p>
+                </div>
+                <Switch
+                  id="isFeatured"
+                  checked={watch("isFeatured")}
+                  onCheckedChange={(checked) => setValue("isFeatured", checked)}
                 />
               </div>
             </div>
