@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
@@ -32,13 +32,14 @@ export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { setTheme, theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  // The theme is only known in the browser; render the toggle after hydration.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
   const { admin, isSuperAdmin } = useCurrentAdmin();
-
-  useEffect(() => {
-    setMounted(true);
-  }, []);
 
   const handleLogout = async () => {
     await signOut();

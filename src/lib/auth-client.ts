@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useMemo, useSyncExternalStore } from "react";
 import { createAuthClient } from "better-auth/client";
 import { bearer } from "better-auth/plugins";
 import { AdminUser } from "./types/api";
@@ -24,18 +24,24 @@ export function setStoredToken(token: string, remember: boolean) {
   (remember ? localStorage : sessionStorage).setItem(TOKEN_KEY, token);
 }
 
+// Lets components showing the signed-in admin update when it changes in this tab.
+const ADMIN_CHANGED = "sc-admin-changed";
+
 export function removeStoredToken() {
   if (typeof window === "undefined") return;
   localStorage.removeItem(TOKEN_KEY);
   sessionStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(ADMIN_USER_KEY);
   sessionStorage.removeItem(ADMIN_USER_KEY);
+  window.dispatchEvent(new Event(ADMIN_CHANGED));
 }
 
 /** The staff member last confirmed by the server, or null. Never guessed. */
-export function getStoredAdmin(): AdminUser | null {
-  if (typeof window === "undefined") return null;
-  const raw = localStorage.getItem(ADMIN_USER_KEY) || sessionStorage.getItem(ADMIN_USER_KEY);
+function readStoredAdmin(): string | null {
+  return localStorage.getItem(ADMIN_USER_KEY) || sessionStorage.getItem(ADMIN_USER_KEY);
+}
+
+function parseAdmin(raw: string | null | undefined): AdminUser | null {
   if (!raw) return null;
   try {
     return JSON.parse(raw) as AdminUser;
@@ -44,11 +50,17 @@ export function getStoredAdmin(): AdminUser | null {
   }
 }
 
+export function getStoredAdmin(): AdminUser | null {
+  if (typeof window === "undefined") return null;
+  return parseAdmin(readStoredAdmin());
+}
+
 /** Stored alongside the token, in the same storage. */
 export function setStoredAdmin(admin: AdminUser) {
   if (typeof window === "undefined") return;
   const storage = localStorage.getItem(TOKEN_KEY) ? localStorage : sessionStorage;
   storage.setItem(ADMIN_USER_KEY, JSON.stringify(admin));
+  window.dispatchEvent(new Event(ADMIN_CHANGED));
 }
 
 export class NotStaffError extends Error {
@@ -92,18 +104,24 @@ export function isSuperAdmin(user?: AdminUser | null): boolean {
   return admin?.role === "super_admin";
 }
 
-export function useCurrentAdmin() {
-  const [admin, setAdmin] = useState<AdminUser | null>(null);
-  const [loading, setLoading] = useState(true);
+function subscribeToAdmin(onChange: () => void) {
+  window.addEventListener("storage", onChange);
+  window.addEventListener(ADMIN_CHANGED, onChange);
+  return () => {
+    window.removeEventListener("storage", onChange);
+    window.removeEventListener(ADMIN_CHANGED, onChange);
+  };
+}
 
-  useEffect(() => {
-    setAdmin(getStoredAdmin());
-    setLoading(false);
-  }, []);
+/** The signed-in admin from storage; `loading` until the browser has read it. */
+export function useCurrentAdmin() {
+  // The stored string is the snapshot (stable between reads); undefined on the server.
+  const raw = useSyncExternalStore(subscribeToAdmin, readStoredAdmin, () => undefined);
+  const admin = useMemo(() => parseAdmin(raw), [raw]);
 
   return {
     admin,
-    loading,
+    loading: raw === undefined,
     isSuperAdmin: admin?.role === "super_admin",
   };
 }
