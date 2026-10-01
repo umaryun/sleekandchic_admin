@@ -16,7 +16,8 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-import { apiClient, uploadMedia } from "@/src/lib/api-client";
+import { apiClient, uploadMedia, IMAGE_ACCEPT } from "@/src/lib/api-client";
+import { useCurrentAdmin } from "@/src/lib/auth-client";
 import { HeroSlide } from "@/src/lib/types/api";
 import { getImageUrl } from "@/src/lib/utils";
 
@@ -37,11 +38,25 @@ import {
   DialogTitle,
 } from "@/src/components/ui/dialog";
 
+// Same rule as the server: a page on this site, or a full https address.
+const isSafeHref = (href: string) => {
+  if (/^\/(?!\/)/.test(href)) return true;
+  try {
+    return new URL(href).protocol === "https:";
+  } catch {
+    return false;
+  }
+};
+
 const slideSchema = z.object({
-  boldText: z.string().optional(),
-  regularText: z.string().optional(),
-  linkText: z.string().optional(),
-  href: z.string().optional(),
+  boldText: z.string().trim().max(80, "Keep it to 80 characters").optional(),
+  regularText: z.string().trim().max(160, "Keep it to 160 characters").optional(),
+  linkText: z.string().trim().max(30, "Keep it to 30 characters").optional(),
+  href: z
+    .string()
+    .trim()
+    .optional()
+    .refine((v) => !v || isSafeHref(v), "Use a page on this site (starting with /) or a full https:// link"),
   imageUrl: z.string().min(1, "Slide image is required"),
   displayOrder: z.preprocess(
     (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? 0 : Number(val)),
@@ -54,6 +69,8 @@ type SlideFormValues = z.infer<typeof slideSchema>;
 
 export default function HeroSlidesPage() {
   const queryClient = useQueryClient();
+  // Deleting is owner-only on the server; staff don't see the button.
+  const { isSuperAdmin } = useCurrentAdmin();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null);
   const [deleteSlide, setDeleteSlide] = useState<HeroSlide | null>(null);
@@ -91,8 +108,8 @@ export default function HeroSlidesPage() {
     reset({
       boldText: "",
       regularText: "",
-      linkText: "Shop Collection",
-      href: "/collections",
+      linkText: "Shop now",
+      href: "/products",
       imageUrl: "",
       displayOrder: 0,
       isActive: true,
@@ -283,14 +300,16 @@ export default function HeroSlidesPage() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => setDeleteSlide(slide)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isSuperAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteSlide(slide)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>
@@ -331,7 +350,7 @@ export default function HeroSlidesPage() {
                   <span>Upload High-Res Banner Image</span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept={IMAGE_ACCEPT}
                     className="hidden"
                     onChange={handleImageUpload}
                     disabled={uploading}
@@ -347,23 +366,31 @@ export default function HeroSlidesPage() {
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="boldText">Bold Heading</Label>
-                <Input id="boldText" placeholder="AUTUMN COUTURE" {...register("boldText")} />
+                <Label htmlFor="boldText">Heading</Label>
+                <Input id="boldText" placeholder="The Eid edit" {...register("boldText")} />
+                {errors.boldText && <p className="text-xs font-medium text-destructive">{errors.boldText.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="regularText">Subtitle Text</Label>
-                <Input id="regularText" placeholder="Exclusive Collection" {...register("regularText")} />
+                <Label htmlFor="regularText">Subtext</Label>
+                <Input id="regularText" placeholder="New abayas and kaftans" {...register("regularText")} />
+                {errors.regularText && <p className="text-xs font-medium text-destructive">{errors.regularText.message}</p>}
               </div>
             </div>
 
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="linkText">Button Label</Label>
-                <Input id="linkText" placeholder="Explore Now" {...register("linkText")} />
+                <Label htmlFor="linkText">Button text</Label>
+                <Input id="linkText" placeholder="Shop now" {...register("linkText")} />
+                {errors.linkText && <p className="text-xs font-medium text-destructive">{errors.linkText.message}</p>}
               </div>
               <div className="space-y-2">
-                <Label htmlFor="href">CTA Target Link</Label>
-                <Input id="href" placeholder="/collections/autumn" {...register("href")} />
+                <Label htmlFor="href">Goes to</Label>
+                <Input id="href" placeholder="/products?category=abayas" aria-describedby="href-hint" {...register("href")} />
+                {errors.href ? (
+                  <p className="text-xs font-medium text-destructive">{errors.href.message}</p>
+                ) : (
+                  <p id="href-hint" className="text-xs text-muted-foreground">A shop page like /products?sale=true, or an https:// link. Empty goes to all products.</p>
+                )}
               </div>
             </div>
 

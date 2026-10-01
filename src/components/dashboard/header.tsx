@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { useTheme } from "next-themes";
 import {
@@ -25,23 +25,24 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/src/components/
 import { Avatar, AvatarFallback } from "@/src/components/ui/avatar";
 import { Badge } from "@/src/components/ui/badge";
 import { Sidebar, NAV_ITEMS } from "./sidebar";
-import { removeStoredToken, useCurrentAdmin } from "@/src/lib/auth-client";
+import { signOut, useCurrentAdmin } from "@/src/lib/auth-client";
 import { ShieldCheck, Crown } from "lucide-react";
 
 export function Header() {
   const pathname = usePathname();
   const router = useRouter();
   const { setTheme, theme } = useTheme();
-  const [mounted, setMounted] = useState(false);
+  // The theme is only known in the browser; render the toggle after hydration.
+  const mounted = useSyncExternalStore(
+    () => () => {},
+    () => true,
+    () => false
+  );
   const [mobileOpen, setMobileOpen] = useState(false);
   const { admin, isSuperAdmin } = useCurrentAdmin();
 
-  useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  const handleLogout = () => {
-    removeStoredToken();
+  const handleLogout = async () => {
+    await signOut();
     router.push("/login");
   };
 
@@ -158,7 +159,7 @@ export function Header() {
                   </Badge>
                 </div>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {admin?.email || "admin@slickandchic.com"}
+                  {admin?.email}
                 </p>
               </div>
             </DropdownMenuLabel>

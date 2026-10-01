@@ -12,11 +12,13 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/src
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
-import { setStoredToken, setStoredAdmin } from "@/src/lib/auth-client";
+import { NotStaffError, fetchCurrentAdmin, setStoredAdmin, setStoredToken, signOut } from "@/src/lib/auth-client";
+import { API_ORIGIN } from "@/src/lib/config";
 
 const loginSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
-  password: z.string().min(6, "Password must be at least 6 characters"),
+  password: z.string().min(1, "Enter your password"),
+  remember: z.boolean(),
 });
 
 type LoginFormValues = z.infer<typeof loginSchema>;
@@ -34,6 +36,7 @@ export default function LoginPage() {
     defaultValues: {
       email: "",
       password: "",
+      remember: false,
     },
   });
 
@@ -41,11 +44,7 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      const baseUrl =
-        process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1$/, "") ||
-        "http://localhost:3000";
-
-      const res = await fetch(`${baseUrl}/api/auth/sign-in/email`, {
+      const res = await fetch(`${API_ORIGIN}/api/auth/sign-in/email`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -59,24 +58,29 @@ export default function LoginPage() {
       const data = await res.json().catch(() => ({}));
 
       if (!res.ok) {
-        throw new Error(data.message || data.error || "Authentication failed. Please check credentials.");
+        throw new Error(
+          res.status === 429
+            ? "Too many attempts. Please wait a minute and try again."
+            : data.message || data.error || "Wrong email or password."
+        );
       }
 
-      // Store Bearer token & Admin Profile
-      const token = data.token || data.session?.token || data.accessToken || "session_token_granted";
-      setStoredToken(token);
+      const token: string | undefined = res.headers.get("set-auth-token") || data.token;
+      if (!token) throw new Error("Sign-in didn't return a session. Please try again.");
 
-      const user = data.user || data.session?.user;
-      setStoredAdmin({
-        id: user?.id || "admin-main",
-        name: user?.name || "Admin Manager",
-        email: user?.email || values.email,
-        role: (user?.role === "super_admin" || user?.role === "admin" ? user.role : "super_admin"),
-        status: "active",
-        createdAt: user?.createdAt || new Date().toISOString(),
-      });
+      // The role comes from the server, never assumed. A customer account is
+      // signed straight back out.
+      let admin;
+      try {
+        admin = await fetchCurrentAdmin(token);
+      } catch (err) {
+        if (err instanceof NotStaffError) await signOut(token);
+        throw err;
+      }
 
-      toast.success("Successfully logged in to Slickandchic Admin!");
+      setStoredToken(token, values.remember);
+      setStoredAdmin(admin);
+      toast.success(`Welcome back, ${admin.name.split(" ")[0]}`);
       router.push("/");
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : "Failed to sign in";
@@ -145,6 +149,19 @@ export default function LoginPage() {
                   {errors.password.message}
                 </p>
               )}
+            </div>
+
+            <div className="flex items-center justify-between gap-3 text-sm">
+              <label className="flex items-center gap-2 text-muted-foreground cursor-pointer">
+                <input type="checkbox" className="h-4 w-4 accent-amber-500" {...register("remember")} />
+                Keep me signed in on this device
+              </label>
+              <a
+                href={`${API_ORIGIN}/password/reset`}
+                className="text-amber-600 hover:underline underline-offset-4 shrink-0"
+              >
+                Forgot password?
+              </a>
             </div>
 
             <Button

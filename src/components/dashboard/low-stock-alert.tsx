@@ -7,9 +7,10 @@ import { LowStockItem } from "@/src/lib/types/api";
 
 interface LowStockAlertsWidgetProps {
   items: LowStockItem[];
+  threshold: number;
 }
 
-export function LowStockAlertsWidget({ items }: LowStockAlertsWidgetProps) {
+export function LowStockAlertsWidget({ items, threshold }: LowStockAlertsWidgetProps) {
   return (
     <Card className="col-span-full lg:col-span-4 border-rose-500/20 bg-rose-500/5 dark:bg-rose-950/10">
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
@@ -18,9 +19,9 @@ export function LowStockAlertsWidget({ items }: LowStockAlertsWidgetProps) {
             <AlertTriangle className="h-4 w-4" />
           </div>
           <div>
-            <CardTitle className="text-base font-semibold">Low Stock Alerts</CardTitle>
+            <CardTitle className="text-base font-semibold">Low stock</CardTitle>
             <p className="text-xs text-muted-foreground mt-0.5">
-              Variants with 5 or fewer items remaining
+              Sizes with {threshold} or fewer left, emptiest first
             </p>
           </div>
         </div>
@@ -33,7 +34,7 @@ export function LowStockAlertsWidget({ items }: LowStockAlertsWidgetProps) {
         {items.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center text-muted-foreground space-y-2">
             <PackageX className="h-8 w-8 opacity-40 text-emerald-500" />
-            <p className="text-sm font-medium">All product stocks healthy!</p>
+            <p className="text-sm font-medium">Nothing is running low.</p>
           </div>
         ) : (
           <div className="space-y-3 max-h-[320px] overflow-y-auto pr-1">

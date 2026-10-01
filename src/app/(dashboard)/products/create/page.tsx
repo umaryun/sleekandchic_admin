@@ -16,13 +16,14 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { apiClient, uploadMedia } from "@/src/lib/api-client";
+import { apiClient, uploadMedia, IMAGE_ACCEPT } from "@/src/lib/api-client";
 import { Category } from "@/src/lib/types/api";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/src/components/ui/card";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
+import { ColourSuggestions } from "@/src/components/products/colour-suggestions";
 import { Textarea } from "@/src/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select";
 import { Switch } from "@/src/components/ui/switch";
@@ -40,9 +41,10 @@ const productSchema = z.object({
   ),
   sku: z.string().optional(),
   brand: z.string().optional(),
+  // SALE isn't chosen: it follows from a was price above the price.
   badge: z.preprocess(
-    (val) => (!val || val === "none" ? undefined : val),
-    z.enum(["sale", "new", "hot"]).optional()
+    (val) => (!val || val === "none" || val === "sale" ? undefined : val),
+    z.enum(["new", "hot"]).optional()
   ),
   discount: z.preprocess(
     (val) => (val === "" || val === null || val === undefined || (typeof val === "number" && Number.isNaN(val)) ? undefined : Number(val)),
@@ -53,6 +55,7 @@ const productSchema = z.object({
     z.string().optional()
   ),
   inStock: z.boolean(),
+  isFeatured: z.boolean(),
   variants: z.array(
     z.object({
       size: z.string().optional(),
@@ -67,6 +70,9 @@ const productSchema = z.object({
       ),
     })
   ),
+}).refine((v) => v.originalPrice === undefined || v.originalPrice > v.price, {
+  path: ["originalPrice"],
+  message: "Make the was price higher than the price, or leave it empty",
 });
 
 type ProductFormValues = z.infer<typeof productSchema>;
@@ -95,8 +101,9 @@ export default function CreateProductPage() {
       description: "",
       price: 0,
       inStock: true,
+      isFeatured: false,
       variants: [
-        { size: "M", color: "#000000", stockQuantity: 10 },
+        { size: "", color: "", stockQuantity: 0 },
       ],
     },
   });
@@ -174,7 +181,7 @@ export default function CreateProductPage() {
             Create New Product
           </h1>
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-            Add a luxury item to your Slickandchic storefront catalog
+            Add a new item to the Sleekandchic shop
           </p>
         </div>
       </div>
@@ -230,14 +237,18 @@ export default function CreateProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="originalPrice">Original Price (₦)</Label>
+                <Label htmlFor="originalPrice">Was price (₦)</Label>
                 <Input
                   id="originalPrice"
                   type="number"
                   step="0.01"
-                  placeholder="180000 (Optional)"
+                  placeholder="Optional"
                   {...register("originalPrice", { valueAsNumber: true })}
                 />
+                <p className="text-xs text-muted-foreground">
+                  Higher than the price to show it as on sale, with the % off worked out for you. Leave empty otherwise.
+                </p>
+                {errors.originalPrice && <p className="text-xs font-medium text-destructive">{errors.originalPrice.message}</p>}
               </div>
 
               <div className="space-y-2">
@@ -247,7 +258,7 @@ export default function CreateProductPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="brand">Brand</Label>
-                <Input id="brand" placeholder="Slick & Chic Couture" {...register("brand")} />
+                <Input id="brand" placeholder="Sleekandchic" {...register("brand")} />
               </div>
 
               <div className="space-y-2">
@@ -271,21 +282,21 @@ export default function CreateProductPage() {
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="badge">Promotional Badge</Label>
+                <Label htmlFor="badge">Label</Label>
                 <Select
                   value={(watch("badge") as string) || "none"}
-                  onValueChange={(val) => setValue("badge", val === "none" ? undefined : (val as "sale" | "new" | "hot"))}
+                  onValueChange={(val) => setValue("badge", val === "none" ? undefined : (val as "new" | "hot"))}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="badge">
                     <SelectValue placeholder="None" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">None</SelectItem>
-                    <SelectItem value="sale">SALE</SelectItem>
                     <SelectItem value="new">NEW</SelectItem>
                     <SelectItem value="hot">HOT</SelectItem>
                   </SelectContent>
                 </Select>
+                <p className="text-xs text-muted-foreground">SALE is added by itself when there&apos;s a higher was price.</p>
               </div>
 
               <div className="flex items-center justify-between pt-2 sm:col-span-2">
@@ -297,6 +308,17 @@ export default function CreateProductPage() {
                   id="inStock"
                   checked={watch("inStock")}
                   onCheckedChange={(checked) => setValue("inStock", checked)}
+                />
+              </div>
+              <div className="flex items-center justify-between pt-2 sm:col-span-2">
+                <div>
+                  <Label htmlFor="isFeatured" className="text-sm font-semibold">Show on the home page</Label>
+                  <p className="text-xs text-muted-foreground">Appears in the Featured tab</p>
+                </div>
+                <Switch
+                  id="isFeatured"
+                  checked={watch("isFeatured")}
+                  onCheckedChange={(checked) => setValue("isFeatured", checked)}
                 />
               </div>
             </div>
@@ -344,12 +366,12 @@ export default function CreateProductPage() {
                   <>
                     <Upload className="h-6 w-6 text-muted-foreground mb-2" />
                     <span className="text-xs font-semibold text-foreground">Upload Image</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">PNG, JPG, WEBP</span>
+                    <span className="text-[10px] text-muted-foreground mt-0.5">JPEG, PNG or WebP, up to 5 MB</span>
                   </>
                 )}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={IMAGE_ACCEPT}
                   multiple
                   className="hidden"
                   onChange={handleImageUpload}
@@ -373,12 +395,14 @@ export default function CreateProductPage() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => appendVariant({ size: "L", color: "#000000", stockQuantity: 5 })}
+              onClick={() => appendVariant({ size: "", color: "", stockQuantity: 0 })}
             >
               <Plus className="mr-1 h-3.5 w-3.5" /> Add Variant
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Suggestions keep colour names consistent; any name can be typed. */}
+            <ColourSuggestions />
             {variantFields.map((field, index) => (
               <div
                 key={field.id}
@@ -393,18 +417,14 @@ export default function CreateProductPage() {
                 </div>
 
                 <div className="w-full sm:w-36 space-y-1">
-                  <Label className="text-xs">Color (Name/Hex)</Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      className="h-9 w-9 rounded border cursor-pointer p-0.5"
-                      {...register(`variants.${index}.color`)}
-                    />
-                    <Input
-                      placeholder="#000000"
-                      {...register(`variants.${index}.color`)}
-                    />
-                  </div>
+                  <Label className="text-xs" htmlFor={`variant-colour-${index}`}>Colour</Label>
+                  <Input
+                    id={`variant-colour-${index}`}
+                    placeholder="e.g. Black"
+                    list="colour-names"
+                    autoComplete="off"
+                    {...register(`variants.${index}.color`)}
+                  />
                 </div>
 
                 <div className="w-full sm:w-28 space-y-1">

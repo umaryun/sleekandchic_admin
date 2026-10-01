@@ -17,7 +17,8 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-import { apiClient, uploadMedia } from "@/src/lib/api-client";
+import { apiClient, uploadMedia, IMAGE_ACCEPT } from "@/src/lib/api-client";
+import { useCurrentAdmin } from "@/src/lib/auth-client";
 import { Category } from "@/src/lib/types/api";
 import { getImageUrl } from "@/src/lib/utils";
 
@@ -51,6 +52,8 @@ type CategoryFormValues = z.infer<typeof categorySchema>;
 
 export default function CategoriesPage() {
   const queryClient = useQueryClient();
+  // Deleting is owner-only on the server; staff don't see the button.
+  const { isSuperAdmin } = useCurrentAdmin();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deleteCategory, setDeleteCategory] = useState<Category | null>(null);
@@ -117,7 +120,8 @@ export default function CategoriesPage() {
       const payload = {
         ...values,
         iconUrl: uploadedIcon || values.iconUrl || undefined,
-        parentId: values.parentId || undefined,
+        // null moves a subcategory back to the top level.
+        parentId: values.parentId || null,
       };
 
       if (editingCategory) {
@@ -246,14 +250,16 @@ export default function CategoriesPage() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => setDeleteCategory(parent)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isSuperAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteCategory(parent)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
 
@@ -284,14 +290,16 @@ export default function CategoriesPage() {
                               >
                                 <Edit className="h-3.5 w-3.5" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                                onClick={() => setDeleteCategory(sub)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              {isSuperAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeleteCategory(sub)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         ))}
@@ -336,6 +344,7 @@ export default function CategoriesPage() {
               <Select
                 value={(watch("parentId") as string) || "none"}
                 onValueChange={(val) => setValue("parentId", val === "none" ? "" : val)}
+                disabled={!!editingCategory && getSubcategories(editingCategory.id).length > 0}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="None (Root Category)" />
@@ -351,6 +360,9 @@ export default function CategoriesPage() {
                     ))}
                 </SelectContent>
               </Select>
+              {editingCategory && getSubcategories(editingCategory.id).length > 0 && (
+                <p className="text-xs text-muted-foreground">It has subcategories, so it stays at the top level.</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -379,7 +391,7 @@ export default function CategoriesPage() {
                   <span>Upload Icon</span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept={IMAGE_ACCEPT}
                     className="hidden"
                     onChange={handleIconUpload}
                     disabled={uploading}
@@ -418,9 +430,9 @@ export default function CategoriesPage() {
       <Dialog open={!!deleteCategory} onOpenChange={() => setDeleteCategory(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Category?</DialogTitle>
+            <DialogTitle>Delete {deleteCategory?.name}?</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete category &quot;{deleteCategory?.name}&quot;?
+              Its products stay in the shop without a category, and any subcategories move to the top level.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>

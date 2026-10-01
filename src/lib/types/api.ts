@@ -32,19 +32,37 @@ export interface DailyRevenue {
   orders: number;
 }
 
+/** Dashboard figures. Days are Lagos days; revenue is paid orders by payment date. */
 export interface AnalyticsOverview {
+  timezone: string;
   revenue: {
     total: number;
+    today: number;
+    last30Days: number;
+    previous30Days: number;
+    /** Null when there's nothing to compare with. */
+    changePercent: number | null;
     currency: string;
   };
   orders: {
     total: number;
     byStatus: Record<string, number>;
+    last30Days: number;
+    previous30Days: number;
+    changePercent: number | null;
+    /** Pay-on-delivery orders waiting to be confirmed. */
+    toConfirm: number;
+    /** Confirmed or paid, not shipped yet. */
+    toShip: number;
+    inTransit: number;
   };
+  cashToCollect: { amount: number; orders: number };
   products: {
     total: number;
     lowStock: LowStockItem[];
+    lowStockThreshold: number;
   };
+  /** One entry per day for the last 30 days, oldest first. */
   dailyRevenue: DailyRevenue[];
   recentOrders: {
     id: string;
@@ -90,6 +108,10 @@ export interface Product {
   discount?: number | null;
   categoryId?: string | null;
   inStock: boolean;
+  /** Archived products are hidden from the shop but kept for past orders. */
+  status: "draft" | "active" | "archived";
+  /** Shown in the home page's Featured tab. */
+  isFeatured?: boolean;
   image?: string | null;
   images?: ProductImage[];
   variants?: ProductVariant[];
@@ -113,6 +135,7 @@ export interface CreateProductInput {
   discount?: number;
   categoryId?: string;
   inStock?: boolean;
+  status?: "draft" | "active";
   images?: { imageUrl: string; altText?: string }[];
   variants?: {
     size?: string;
@@ -180,11 +203,28 @@ export interface Order {
   userId?: string | null;
   guestEmail?: string | null;
   customerEmail?: string | null;
+  /** The person to deliver to (from the address), else the account name. */
   customerName?: string | null;
+  customerPhone?: string | null;
+  /** Name on the customer's account, when they were signed in. */
+  accountName?: string | null;
+  deliveryState?: string | null;
+  /** Null on orders placed before these were recorded. */
+  paymentMethod?: "paystack" | "cod" | null;
+  shippingMethod?: "standard" | "express" | null;
+  subtotal?: number | null;
+  discountAmount?: number;
+  discountCode?: string | null;
+  shippingFee?: number;
   totalAmount: number;
   status: "pending" | "paid" | "processing" | "shipped" | "delivered" | "cancelled";
   paymentStatus: "unpaid" | "paid" | "refunded";
+  paymentReference?: string | null;
+  paidAt?: string | null;
   shippingAddress?: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
     street: string;
     city: string;
     state: string;
@@ -192,8 +232,22 @@ export interface Order {
     postalCode?: string;
   } | null;
   items?: OrderItem[];
+  /** Statuses staff may move this order to next (detail endpoint only). */
+  allowedStatuses?: Order["status"][];
+  timeline?: OrderEvent[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OrderEvent {
+  id: string;
+  type: "placed" | "payment_received" | "status_changed" | "payment_status_changed" | "cancelled" | "note";
+  fromStatus: string | null;
+  toStatus: string | null;
+  message: string | null;
+  /** Null when the customer or the system did it. */
+  actorName: string | null;
+  createdAt: string;
 }
 
 export interface OrderListResponse {
@@ -205,6 +259,8 @@ export interface UpdateOrderInput {
   orderId: string;
   status?: Order["status"];
   paymentStatus?: Order["paymentStatus"];
+  /** Added to the order's timeline. */
+  note?: string;
 }
 
 // ──────────────────────────────────────────────
@@ -222,6 +278,8 @@ export interface Discount {
   startsAt?: string | null;
   expiresAt?: string | null;
   isActive: boolean;
+  /** What a shopper would get with this code right now. */
+  state: "active" | "paused" | "scheduled" | "expired" | "used_up";
   createdAt: string;
 }
 
@@ -275,16 +333,22 @@ export type UpdateHeroSlideInput = Partial<CreateHeroSlideInput>;
 // Customers
 // ──────────────────────────────────────────────
 
+/** A customer account, or a guest grouped by the email they checked out with. */
 export interface Customer {
+  /** "u:<userId>" or "g:<email>". */
   id: string;
-  name?: string | null;
-  email: string;
-  phone?: string | null;
-  role: string;
-  isAnonymous?: boolean;
+  userId: string | null;
+  type: "account" | "guest";
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  /** When they created an account; null for guests. */
+  registeredAt: string | null;
+  /** Orders that weren't cancelled. */
   totalOrders: number;
+  /** Paid orders only. */
   totalSpent: number;
-  createdAt: string;
+  lastOrderAt: string | null;
 }
 
 export interface CustomerListResponse {
@@ -330,7 +394,14 @@ export interface InviteAdminInput {
   name: string;
   email: string;
   role: AdminRole;
-  password?: string;
+}
+
+export interface InviteResult extends AdminUser {
+  invitation: {
+    emailSent: boolean;
+    /** Only when the email couldn't be sent, to pass on by hand. */
+    setupLink: string | null;
+  };
 }
 
 export interface UpdateAdminInput {

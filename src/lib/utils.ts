@@ -1,5 +1,6 @@
 import { clsx, type ClassValue } from "clsx";
 import { twMerge } from "tailwind-merge";
+import { API_ORIGIN } from "./config";
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -56,15 +57,12 @@ export function formatRelativeTime(dateStr: string | Date | null | undefined): s
 
 /**
  * Helper to resolve full image URLs.
- * Relative paths like "/product-1.jpeg" are appended to the backend server URL (http://localhost:3000).
+ * Relative paths like "/product-1.jpeg" are served by the storefront.
  */
 export function getImageUrl(url: string | null | undefined): string {
   if (!url) return "";
   if (url.startsWith("http://") || url.startsWith("https://")) {
     return url;
   }
-  const backendBase =
-    process.env.NEXT_PUBLIC_API_URL?.replace(/\/api\/v1$/, "") ||
-    "http://localhost:3000";
-  return `${backendBase}${url.startsWith("/") ? "" : "/"}${url}`;
+  return `${API_ORIGIN}${url.startsWith("/") ? "" : "/"}${url}`;
 }
