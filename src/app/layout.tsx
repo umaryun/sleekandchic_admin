@@ -19,7 +19,7 @@ const playfair = Playfair_Display({
 });
 
 export const metadata: Metadata = {
-  title: "Slick & Chic | Admin Suite",
+  title: "Sleekandchic Admin",
   description: "Luxury Fashion & E-Commerce Admin Management Portal",
 };
 

@@ -248,7 +248,7 @@ export default function CreateProductPage() {
 
               <div className="space-y-2">
                 <Label htmlFor="brand">Brand</Label>
-                <Input id="brand" placeholder="Slick & Chic Couture" {...register("brand")} />
+                <Input id="brand" placeholder="Sleekandchic" {...register("brand")} />
               </div>
 
               <div className="space-y-2">
