@@ -33,6 +33,7 @@ import { Badge } from "@/src/components/ui/badge";
 import { Switch } from "@/src/components/ui/switch";
 import { Skeleton } from "@/src/components/ui/skeleton";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select";
+import { NIGERIAN_STATES } from "@/src/lib/nigeria";
 import {
   Dialog,
   DialogContent,
@@ -59,7 +60,7 @@ const ZONE_BADGE_STYLES: Record<string, string> = {
 };
 
 const rateSchema = z.object({
-  state: z.string().min(1, "Location / State name is required"),
+  state: z.string().min(1, "Choose a state"),
   zone: z.enum(["A", "B", "C", "D", "E"]),
   standardBase: z.number({ message: "Standard base fee must be a number" }).int().min(0),
   expressBase: z.number({ message: "Express base fee must be a number" }).int().min(0),
@@ -584,12 +585,19 @@ export default function ShippingPage() {
           >
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5 col-span-2 sm:col-span-1">
-                <Label className="text-xs">Location / State</Label>
-                <Input
+                <Label className="text-xs" htmlFor="rate-state">State</Label>
+                <select
+                  id="rate-state"
                   {...registerForm("state")}
-                  placeholder="State name"
-                  className="h-9 text-xs glass-panel"
-                />
+                  className="h-9 w-full rounded-md border border-input bg-transparent px-3 text-xs glass-panel"
+                >
+                  <option value="">Choose a state</option>
+                  {NIGERIAN_STATES.map((st) => (
+                    <option key={st} value={st}>
+                      {st}
+                    </option>
+                  ))}
+                </select>
                 {formErrors.state && (
                   <p className="text-[10px] text-destructive">{formErrors.state.message}</p>
                 )}
