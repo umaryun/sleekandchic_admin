@@ -329,16 +329,22 @@ export type UpdateHeroSlideInput = Partial<CreateHeroSlideInput>;
 // Customers
 // ──────────────────────────────────────────────
 
+/** A customer account, or a guest grouped by the email they checked out with. */
 export interface Customer {
+  /** "u:<userId>" or "g:<email>". */
   id: string;
-  name?: string | null;
-  email: string;
-  phone?: string | null;
-  role: string;
-  isAnonymous?: boolean;
+  userId: string | null;
+  type: "account" | "guest";
+  name: string | null;
+  email: string | null;
+  phone: string | null;
+  /** When they created an account; null for guests. */
+  registeredAt: string | null;
+  /** Orders that weren't cancelled. */
   totalOrders: number;
+  /** Paid orders only. */
   totalSpent: number;
-  createdAt: string;
+  lastOrderAt: string | null;
 }
 
 export interface CustomerListResponse {

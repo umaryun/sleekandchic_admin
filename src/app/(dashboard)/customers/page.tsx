@@ -49,7 +49,7 @@ export default function CustomersPage() {
       <div className="relative w-full sm:w-80">
         <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
         <Input
-          placeholder="Search by name or email..."
+          placeholder="Search by name, email or phone"
           value={search}
           onChange={(e) => {
             setSearch(e.target.value);
@@ -62,9 +62,9 @@ export default function CustomersPage() {
       {/* Customers Table */}
       <Card className="glass-card">
         <CardHeader>
-          <CardTitle className="text-base font-semibold">Client Profiles</CardTitle>
+          <CardTitle className="text-base font-semibold">Customers</CardTitle>
           <CardDescription className="text-xs">
-            Overview of client account types, order frequency, and lifetime revenue
+            Account holders and guest shoppers. Spend counts paid orders only; most recent buyers first.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -78,7 +78,7 @@ export default function CustomersPage() {
           ) : data.customers.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center text-muted-foreground space-y-3">
               <Users className="h-10 w-10 opacity-40 text-amber-500" />
-              <p className="text-base font-medium">No customer accounts found.</p>
+              <p className="text-base font-medium">No customers found.</p>
             </div>
           ) : (
             <Table>
@@ -88,10 +88,10 @@ export default function CustomersPage() {
                   <TableHead>Customer Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Phone</TableHead>
-                  <TableHead>Account Type</TableHead>
-                  <TableHead>Orders Placed</TableHead>
-                  <TableHead>Total Spent (₦)</TableHead>
-                  <TableHead>Joined</TableHead>
+                  <TableHead>Type</TableHead>
+                  <TableHead>Orders</TableHead>
+                  <TableHead>Spent</TableHead>
+                  <TableHead>Last order</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -115,22 +115,20 @@ export default function CustomersPage() {
                       </TableCell>
 
                       <TableCell className="font-semibold text-foreground">
-                        {customer.name || "Guest Customer"}
+                        {customer.name || "No name given"}
                       </TableCell>
 
                       <TableCell className="text-xs text-muted-foreground font-mono">
-                        {customer.email}
+                        {customer.email ?? "—"}
                       </TableCell>
 
                       <TableCell className="text-xs text-muted-foreground">
-                        {customer.phone || "N/A"}
+                        {customer.phone ? <a href={`tel:${customer.phone}`} className="hover:text-foreground">{customer.phone}</a> : "—"}
                       </TableCell>
 
                       <TableCell>
-                        <Badge
-                          variant={customer.isAnonymous ? "secondary" : "info"}
-                        >
-                          {customer.isAnonymous ? "Guest" : "Registered"}
+                        <Badge variant={customer.type === "guest" ? "secondary" : "info"}>
+                          {customer.type === "guest" ? "Guest" : "Account"}
                         </Badge>
                       </TableCell>
 
@@ -143,7 +141,11 @@ export default function CustomersPage() {
                       </TableCell>
 
                       <TableCell className="text-xs text-muted-foreground">
-                        {formatDate(customer.createdAt)}
+                        {customer.lastOrderAt
+                          ? formatDate(customer.lastOrderAt)
+                          : customer.registeredAt
+                            ? `No orders · joined ${formatDate(customer.registeredAt)}`
+                            : "—"}
                       </TableCell>
                     </TableRow>
                   );
