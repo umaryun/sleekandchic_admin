@@ -35,51 +35,44 @@ export async function apiClient<T>(
     headers["Authorization"] = `Bearer ${token}`;
   }
 
+  let res: Response;
   try {
-    const res = await fetch(url, {
-      ...restOptions,
-      headers,
-    });
-
-    if (res.status === 401 || res.status === 403) {
-      removeStoredToken();
-      if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
-        toast.error("Session expired or unauthorized. Please log in again.");
-        window.location.href = "/login";
-      }
-      throw new Error("Unauthorized");
-    }
-
-    const data = await res.json().catch(() => ({}));
-
-    if (!res.ok) {
-      const errorMsg = data?.error || data?.message || `Request failed with status ${res.status}`;
-      if (showErrorToast) {
-        toast.error(errorMsg);
-      }
-      throw new Error(errorMsg);
-    }
-
-    if (showSuccessToast && successMessage) {
-      toast.success(successMessage);
-    }
-
-    // Backend responds with { success: true, data: T } or raw object T
-    if (data && typeof data === "object" && "success" in data && "data" in data) {
-      return data.data as T;
-    }
-
-    return data as T;
-  } catch (err: unknown) {
-    if (err instanceof Error && err.message === "Unauthorized") {
-      throw err;
-    }
-    const message = err instanceof Error ? err.message : "Network error occurred";
-    if (showErrorToast && !message.includes("Unauthorized")) {
-      toast.error(message);
-    }
-    throw err;
+    res = await fetch(url, { ...restOptions, headers });
+  } catch {
+    const message = "Couldn't reach the server. Check your connection and try again.";
+    if (showErrorToast) toast.error(message);
+    throw new Error(message);
   }
+
+  // 401: the session is gone, so sign in again. 403 is handled below like any
+  // other refusal: the action isn't allowed, but the session is fine.
+  if (res.status === 401) {
+    removeStoredToken();
+    if (typeof window !== "undefined" && !window.location.pathname.startsWith("/login")) {
+      toast.error("Your session has expired. Please sign in again.");
+      window.location.href = "/login";
+    }
+    throw new Error("Unauthorized");
+  }
+
+  const data = await res.json().catch(() => ({}));
+
+  if (!res.ok) {
+    const errorMsg = data?.error || data?.message || `Request failed with status ${res.status}`;
+    if (showErrorToast) toast.error(errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  if (showSuccessToast && successMessage) {
+    toast.success(successMessage);
+  }
+
+  // Backend responds with { success: true, data: T } or raw object T
+  if (data && typeof data === "object" && "success" in data && "data" in data) {
+    return data.data as T;
+  }
+
+  return data as T;
 }
 
 /** Image types storage accepts. Use as the file input's `accept` value. */
@@ -108,6 +101,7 @@ export async function uploadMedia(
       path: string;
     }>("/admin/media/upload-url", {
       method: "POST",
+      showErrorToast: false, // reported once, below
       body: JSON.stringify({
         bucket,
         filename: file.name,
@@ -135,7 +129,7 @@ export async function uploadMedia(
     };
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : "Upload failed";
-    toast.error(msg);
+    if (msg !== "Unauthorized") toast.error(msg);
     throw err;
   }
 }

@@ -17,6 +17,7 @@ import {
 } from "lucide-react";
 
 import { apiClient, uploadMedia, IMAGE_ACCEPT } from "@/src/lib/api-client";
+import { useCurrentAdmin } from "@/src/lib/auth-client";
 import { HeroSlide } from "@/src/lib/types/api";
 import { getImageUrl } from "@/src/lib/utils";
 
@@ -54,6 +55,8 @@ type SlideFormValues = z.infer<typeof slideSchema>;
 
 export default function HeroSlidesPage() {
   const queryClient = useQueryClient();
+  // Deleting is owner-only on the server; staff don't see the button.
+  const { isSuperAdmin } = useCurrentAdmin();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingSlide, setEditingSlide] = useState<HeroSlide | null>(null);
   const [deleteSlide, setDeleteSlide] = useState<HeroSlide | null>(null);
@@ -283,14 +286,16 @@ export default function HeroSlidesPage() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => setDeleteSlide(slide)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isSuperAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteSlide(slide)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </TableCell>
                   </TableRow>

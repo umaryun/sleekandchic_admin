@@ -25,7 +25,7 @@ import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/src/components/
 import { Avatar, AvatarFallback } from "@/src/components/ui/avatar";
 import { Badge } from "@/src/components/ui/badge";
 import { Sidebar, NAV_ITEMS } from "./sidebar";
-import { removeStoredToken, useCurrentAdmin } from "@/src/lib/auth-client";
+import { signOut, useCurrentAdmin } from "@/src/lib/auth-client";
 import { ShieldCheck, Crown } from "lucide-react";
 
 export function Header() {
@@ -40,8 +40,8 @@ export function Header() {
     setMounted(true);
   }, []);
 
-  const handleLogout = () => {
-    removeStoredToken();
+  const handleLogout = async () => {
+    await signOut();
     router.push("/login");
   };
 

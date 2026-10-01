@@ -347,7 +347,14 @@ export interface InviteAdminInput {
   name: string;
   email: string;
   role: AdminRole;
-  password?: string;
+}
+
+export interface InviteResult extends AdminUser {
+  invitation: {
+    emailSent: boolean;
+    /** Only when the email couldn't be sent, to pass on by hand. */
+    setupLink: string | null;
+  };
 }
 
 export interface UpdateAdminInput {

@@ -12,6 +12,7 @@ import {
 } from "lucide-react";
 
 import { apiClient } from "@/src/lib/api-client";
+import { useCurrentAdmin } from "@/src/lib/auth-client";
 import { Discount, DiscountListResponse } from "@/src/lib/types/api";
 import { formatNGN } from "@/src/lib/utils";
 
@@ -60,6 +61,8 @@ type DiscountFormValues = z.infer<typeof discountSchema>;
 
 export default function DiscountsPage() {
   const queryClient = useQueryClient();
+  // Deleting is owner-only on the server; staff don't see the button.
+  const { isSuperAdmin } = useCurrentAdmin();
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteDiscount, setDeleteDiscount] = useState<Discount | null>(null);
 
@@ -214,14 +217,16 @@ export default function DiscountsPage() {
                     </TableCell>
 
                     <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="text-destructive hover:bg-destructive/10"
-                        onClick={() => setDeleteDiscount(d)}
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
+                      {isSuperAdmin && (
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="text-destructive hover:bg-destructive/10"
+                          onClick={() => setDeleteDiscount(d)}
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

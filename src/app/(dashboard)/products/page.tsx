@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 
 import { apiClient } from "@/src/lib/api-client";
+import { useCurrentAdmin } from "@/src/lib/auth-client";
 import { Product, ProductListResponse, Category } from "@/src/lib/types/api";
 import { formatNGN, getImageUrl } from "@/src/lib/utils";
 
@@ -45,6 +46,8 @@ import {
 
 export default function ProductsPage() {
   const queryClient = useQueryClient();
+  // Deleting is owner-only on the server; staff don't see the button.
+  const { isSuperAdmin } = useCurrentAdmin();
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -274,13 +277,17 @@ export default function ProductsPage() {
                             <Edit className="mr-2 h-4 w-4" /> Edit Product
                           </Link>
                         </DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => setDeleteProduct(product)}
-                          className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                        >
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete Product
-                        </DropdownMenuItem>
+                        {isSuperAdmin && (
+                          <>
+                            <DropdownMenuSeparator />
+                            <DropdownMenuItem
+                              onClick={() => setDeleteProduct(product)}
+                              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                            >
+                              <Trash2 className="mr-2 h-4 w-4" /> Delete Product
+                            </DropdownMenuItem>
+                          </>
+                        )}
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

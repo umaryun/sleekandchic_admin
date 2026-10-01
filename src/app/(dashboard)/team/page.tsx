@@ -9,7 +9,6 @@ import {
   MoreHorizontal,
   Edit2,
   Trash2,
-  Lock,
   Mail,
   User,
   CheckCircle2,
@@ -25,7 +24,7 @@ import {
 import { toast } from "sonner";
 
 import { apiClient } from "@/src/lib/api-client";
-import { AdminUser, AdminRole, AdminListResponse } from "@/src/lib/types/api";
+import { AdminUser, AdminRole, AdminListResponse, InviteResult } from "@/src/lib/types/api";
 import { useCurrentAdmin } from "@/src/lib/auth-client";
 import { formatDate } from "@/lib/utils";
 
@@ -71,7 +70,8 @@ export default function AdminTeamPage() {
   const [inviteName, setInviteName] = useState("");
   const [inviteEmail, setInviteEmail] = useState("");
   const [inviteRole, setInviteRole] = useState<AdminRole>("admin");
-  const [invitePassword, setInvitePassword] = useState("");
+  // Shown when the invitation email couldn't be sent, to pass on by hand.
+  const [setupLink, setSetupLink] = useState<{ email: string; url: string } | null>(null);
 
   // Edit Role State
   const [selectedRole, setSelectedRole] = useState<AdminRole>("admin");
@@ -91,21 +91,27 @@ export default function AdminTeamPage() {
 
   // Invite Mutation
   const inviteMutation = useMutation({
-    mutationFn: async (newAdmin: { name: string; email: string; role: AdminRole; password?: string }) => {
-      return apiClient<AdminUser>("/admin/team/invite", {
+    mutationFn: async (newAdmin: { name: string; email: string; role: AdminRole }) => {
+      return apiClient<InviteResult>("/admin/team/invite", {
         method: "POST",
         body: JSON.stringify(newAdmin),
-        showSuccessToast: true,
-        successMessage: `Admin user ${newAdmin.email} added successfully!`,
       });
     },
-    onSuccess: () => {
+    onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: ["admin-team"] });
       setInviteModalOpen(false);
       setInviteName("");
       setInviteEmail("");
-      setInvitePassword("");
       setInviteRole("admin");
+
+      const { emailSent, setupLink: url } = result.invitation;
+      if (result.status === "active") {
+        toast.success(`${result.email} can now sign in with their existing password${emailSent ? "; we've emailed them" : ""}.`);
+      } else if (emailSent) {
+        toast.success(`Invitation sent to ${result.email}`);
+      } else if (url) {
+        setSetupLink({ email: result.email, url });
+      }
     },
   });
 
@@ -496,7 +502,7 @@ export default function AdminTeamPage() {
               <UserPlus className="h-5 w-5 text-amber-500" /> Invite Administrator
             </DialogTitle>
             <DialogDescription>
-              Grant dashboard access by entering their credentials and assigning a role.
+              They&apos;ll get an email with a link to choose their own password. If they already shop with this email, they keep their existing password.
             </DialogDescription>
           </DialogHeader>
 
@@ -511,7 +517,6 @@ export default function AdminTeamPage() {
                 name: inviteName,
                 email: inviteEmail,
                 role: inviteRole,
-                password: invitePassword || undefined,
               });
             }}
             className="space-y-4 py-2"
@@ -573,30 +578,44 @@ export default function AdminTeamPage() {
               </Select>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="admin-password">Initial Password (Optional)</Label>
-              <div className="relative">
-                <Lock className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
-                <Input
-                  id="admin-password"
-                  type="password"
-                  placeholder="Temporary password (min 6 characters)"
-                  value={invitePassword}
-                  onChange={(e) => setInvitePassword(e.target.value)}
-                  className="pl-9"
-                />
-              </div>
-            </div>
-
             <DialogFooter className="pt-3">
               <Button type="button" variant="outline" onClick={() => setInviteModalOpen(false)}>
                 Cancel
               </Button>
               <Button type="submit" variant="luxury" disabled={inviteMutation.isPending}>
-                {inviteMutation.isPending ? "Inviting..." : "Grant Access"}
+                {inviteMutation.isPending ? "Inviting..." : "Send invitation"}
               </Button>
             </DialogFooter>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      {/* Invitation link, when email isn't set up */}
+      <Dialog open={!!setupLink} onOpenChange={() => setSetupLink(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Send this link to {setupLink?.email}</DialogTitle>
+            <DialogDescription>
+              Email isn&apos;t set up on the server, so the invitation wasn&apos;t sent. Send them this link yourself, for example on WhatsApp. It lets them choose a password, works once, and expires in 72 hours.
+            </DialogDescription>
+          </DialogHeader>
+          <Input readOnly value={setupLink?.url ?? ""} onFocus={(e) => e.target.select()} aria-label="Set-password link" />
+          <DialogFooter>
+            <Button
+              variant="luxury"
+              onClick={async () => {
+                if (!setupLink) return;
+                try {
+                  await navigator.clipboard.writeText(setupLink.url);
+                  toast.success("Link copied");
+                } catch {
+                  toast.error("Couldn't copy. Select the link and copy it.");
+                }
+              }}
+            >
+              Copy link
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 

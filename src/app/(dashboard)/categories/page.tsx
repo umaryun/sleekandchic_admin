@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 
 import { apiClient, uploadMedia, IMAGE_ACCEPT } from "@/src/lib/api-client";
+import { useCurrentAdmin } from "@/src/lib/auth-client";
 import { Category } from "@/src/lib/types/api";
 import { getImageUrl } from "@/src/lib/utils";
 
@@ -51,6 +52,8 @@ type CategoryFormValues = z.infer<typeof categorySchema>;
 
 export default function CategoriesPage() {
   const queryClient = useQueryClient();
+  // Deleting is owner-only on the server; staff don't see the button.
+  const { isSuperAdmin } = useCurrentAdmin();
   const [modalOpen, setModalOpen] = useState(false);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [deleteCategory, setDeleteCategory] = useState<Category | null>(null);
@@ -246,14 +249,16 @@ export default function CategoriesPage() {
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="text-destructive hover:bg-destructive/10"
-                          onClick={() => setDeleteCategory(parent)}
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
+                        {isSuperAdmin && (
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="text-destructive hover:bg-destructive/10"
+                            onClick={() => setDeleteCategory(parent)}
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        )}
                       </div>
                     </div>
 
@@ -284,14 +289,16 @@ export default function CategoriesPage() {
                               >
                                 <Edit className="h-3.5 w-3.5" />
                               </Button>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                className="h-7 w-7 text-destructive hover:bg-destructive/10"
-                                onClick={() => setDeleteCategory(sub)}
-                              >
-                                <Trash2 className="h-3.5 w-3.5" />
-                              </Button>
+                              {isSuperAdmin && (
+                                <Button
+                                  variant="ghost"
+                                  size="icon"
+                                  className="h-7 w-7 text-destructive hover:bg-destructive/10"
+                                  onClick={() => setDeleteCategory(sub)}
+                                >
+                                  <Trash2 className="h-3.5 w-3.5" />
+                                </Button>
+                              )}
                             </div>
                           </div>
                         ))}
