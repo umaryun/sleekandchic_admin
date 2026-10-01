@@ -120,7 +120,8 @@ export default function CategoriesPage() {
       const payload = {
         ...values,
         iconUrl: uploadedIcon || values.iconUrl || undefined,
-        parentId: values.parentId || undefined,
+        // null moves a subcategory back to the top level.
+        parentId: values.parentId || null,
       };
 
       if (editingCategory) {
@@ -343,6 +344,7 @@ export default function CategoriesPage() {
               <Select
                 value={(watch("parentId") as string) || "none"}
                 onValueChange={(val) => setValue("parentId", val === "none" ? "" : val)}
+                disabled={!!editingCategory && getSubcategories(editingCategory.id).length > 0}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="None (Root Category)" />
@@ -358,6 +360,9 @@ export default function CategoriesPage() {
                     ))}
                 </SelectContent>
               </Select>
+              {editingCategory && getSubcategories(editingCategory.id).length > 0 && (
+                <p className="text-xs text-muted-foreground">It has subcategories, so it stays at the top level.</p>
+              )}
             </div>
 
             <div className="space-y-2">
@@ -425,9 +430,9 @@ export default function CategoriesPage() {
       <Dialog open={!!deleteCategory} onOpenChange={() => setDeleteCategory(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Category?</DialogTitle>
+            <DialogTitle>Delete {deleteCategory?.name}?</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete category &quot;{deleteCategory?.name}&quot;?
+              Its products stay in the shop without a category, and any subcategories move to the top level.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
