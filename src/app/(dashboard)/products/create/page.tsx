@@ -23,6 +23,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/src
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { Label } from "@/src/components/ui/label";
+import { ColourSuggestions } from "@/src/components/products/colour-suggestions";
 import { Textarea } from "@/src/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select";
 import { Switch } from "@/src/components/ui/switch";
@@ -96,7 +97,7 @@ export default function CreateProductPage() {
       price: 0,
       inStock: true,
       variants: [
-        { size: "M", color: "#000000", stockQuantity: 10 },
+        { size: "", color: "", stockQuantity: 0 },
       ],
     },
   });
@@ -373,12 +374,14 @@ export default function CreateProductPage() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => appendVariant({ size: "L", color: "#000000", stockQuantity: 5 })}
+              onClick={() => appendVariant({ size: "", color: "", stockQuantity: 0 })}
             >
               <Plus className="mr-1 h-3.5 w-3.5" /> Add Variant
             </Button>
           </CardHeader>
           <CardContent className="space-y-4">
+            {/* Suggestions keep colour names consistent; any name can be typed. */}
+            <ColourSuggestions />
             {variantFields.map((field, index) => (
               <div
                 key={field.id}
@@ -393,18 +396,14 @@ export default function CreateProductPage() {
                 </div>
 
                 <div className="w-full sm:w-36 space-y-1">
-                  <Label className="text-xs">Color (Name/Hex)</Label>
-                  <div className="flex items-center gap-2">
-                    <input
-                      type="color"
-                      className="h-9 w-9 rounded border cursor-pointer p-0.5"
-                      {...register(`variants.${index}.color`)}
-                    />
-                    <Input
-                      placeholder="#000000"
-                      {...register(`variants.${index}.color`)}
-                    />
-                  </div>
+                  <Label className="text-xs" htmlFor={`variant-colour-${index}`}>Colour</Label>
+                  <Input
+                    id={`variant-colour-${index}`}
+                    placeholder="e.g. Black"
+                    list="colour-names"
+                    autoComplete="off"
+                    {...register(`variants.${index}.color`)}
+                  />
                 </div>
 
                 <div className="w-full sm:w-28 space-y-1">
