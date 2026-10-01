@@ -2,19 +2,17 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery } from "@tanstack/react-query";
 import {
   Search,
   ShoppingCart,
   Calendar,
   Eye,
-  Edit,
-  Loader2,
   RefreshCw,
 } from "lucide-react";
 
 import { apiClient } from "@/src/lib/api-client";
-import { Order, OrderListResponse } from "@/src/lib/types/api";
+import { OrderListResponse } from "@/src/lib/types/api";
 import { formatNGN, formatDate } from "@/lib/utils";
 
 import { Button } from "@/src/components/ui/button";
@@ -23,37 +21,33 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/src/components/ui/badge";
 import { Tabs, TabsList, TabsTrigger } from "@/src/components/ui/tabs";
 import { Skeleton } from "@/src/components/ui/skeleton";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/src/components/ui/select";
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/src/components/ui/dialog";
 
-const STATUS_TABS = [
-  "all",
-  "pending",
-  "paid",
-  "processing",
-  "shipped",
-  "delivered",
-  "cancelled",
+// Status changes happen on the order page, which knows what each order can
+// move to next. "processing" also lists older orders marked "paid".
+const STATUS_TABS: { value: string; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "pending", label: "Pending" },
+  { value: "processing", label: "Preparing" },
+  { value: "shipped", label: "Shipped" },
+  { value: "delivered", label: "Delivered" },
+  { value: "cancelled", label: "Cancelled" },
 ];
 
+const STATUS_LABELS: Record<string, string> = {
+  pending: "Pending",
+  paid: "Preparing",
+  processing: "Preparing",
+  shipped: "Shipped",
+  delivered: "Delivered",
+  cancelled: "Cancelled",
+};
+
 export default function OrdersPage() {
-  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("all");
   const [search, setSearch] = useState("");
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState("");
   const [page, setPage] = useState(1);
-
-  const [statusModalOrder, setStatusModalOrder] = useState<Order | null>(null);
-  const [newStatus, setNewStatus] = useState<Order["status"]>("processing");
-  const [newPaymentStatus, setNewPaymentStatus] = useState<Order["paymentStatus"]>("unpaid");
 
   // Fetch Orders
   const { data, isLoading, isError, refetch } = useQuery<OrderListResponse>({
@@ -71,48 +65,21 @@ export default function OrdersPage() {
     },
   });
 
-  // Update Status Mutation
-  const updateStatusMutation = useMutation({
-    mutationFn: ({
-      orderId,
-      status,
-      paymentStatus,
-    }: {
-      orderId: string;
-      status: Order["status"];
-      paymentStatus: Order["paymentStatus"];
-    }) =>
-      apiClient("/admin/orders", {
-        method: "PUT",
-        body: JSON.stringify({
-          orderId,
-          status,
-          paymentStatus: status === "paid" && paymentStatus === "unpaid" ? "paid" : paymentStatus,
-        }),
-        showSuccessToast: true,
-        successMessage: `Order updated successfully`,
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["orders"] });
-      queryClient.invalidateQueries({ queryKey: ["analytics-overview"] });
-      setStatusModalOrder(null);
-    },
-  });
-
   const getStatusBadge = (status: string) => {
-    switch (status.toLowerCase()) {
-      case "paid":
+    const label = STATUS_LABELS[status] ?? status;
+    switch (status) {
       case "delivered":
-        return <Badge variant="success">{status}</Badge>;
+        return <Badge variant="success">{label}</Badge>;
+      case "paid":
       case "processing":
       case "shipped":
-        return <Badge variant="info">{status}</Badge>;
+        return <Badge variant="info">{label}</Badge>;
       case "pending":
-        return <Badge variant="warning">{status}</Badge>;
+        return <Badge variant="warning">{label}</Badge>;
       case "cancelled":
-        return <Badge variant="destructive">{status}</Badge>;
+        return <Badge variant="destructive">{label}</Badge>;
       default:
-        return <Badge variant="outline">{status}</Badge>;
+        return <Badge variant="outline">{label}</Badge>;
     }
   };
 
@@ -137,8 +104,8 @@ export default function OrdersPage() {
       <Tabs value={activeTab} onValueChange={(val) => { setActiveTab(val); setPage(1); }}>
         <TabsList className="w-full justify-start overflow-x-auto">
           {STATUS_TABS.map((tab) => (
-            <TabsTrigger key={tab} value={tab} className="capitalize font-semibold text-xs">
-              {tab}
+            <TabsTrigger key={tab.value} value={tab.value} className="font-semibold text-xs">
+              {tab.label}
             </TabsTrigger>
           ))}
         </TabsList>
@@ -253,22 +220,11 @@ export default function OrdersPage() {
 
                       <TableCell className="text-right">
                         <div className="flex items-center justify-end gap-1">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => {
-                              setStatusModalOrder(order);
-                              setNewStatus(order.status);
-                              setNewPaymentStatus(order.paymentStatus || "unpaid");
-                            }}
-                          >
-                            <Edit className="h-4 w-4" />
+                          <Button asChild variant="ghost" size="sm">
+                            <Link href={`/orders/${order.id}`} aria-label={`Open order ${order.orderNumber}`}>
+                              <Eye className="h-4 w-4 mr-1" /> Open
+                            </Link>
                           </Button>
-                          <Link href={`/orders/${order.id}`}>
-                            <Button variant="ghost" size="icon">
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </Link>
                         </div>
                       </TableCell>
                     </TableRow>
@@ -278,92 +234,6 @@ export default function OrdersPage() {
             );
           })()}
       </div>
-
-      {/* Status Update Dialog */}
-      <Dialog open={!!statusModalOrder} onOpenChange={() => setStatusModalOrder(null)}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Update Order Status</DialogTitle>
-            <DialogDescription>
-              Update fulfillment and payment status for Order #{statusModalOrder?.orderNumber}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="space-y-4 py-2">
-            <div className="space-y-2">
-              <label className="text-xs font-semibold">Fulfillment Status</label>
-              <Select
-                value={newStatus}
-                onValueChange={(val) => {
-                  const s = val as Order["status"];
-                  setNewStatus(s);
-                  if (s === "paid" && newPaymentStatus === "unpaid") {
-                    setNewPaymentStatus("paid");
-                  }
-                }}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="paid">Paid</SelectItem>
-                  <SelectItem value="processing">Processing</SelectItem>
-                  <SelectItem value="shipped">Shipped</SelectItem>
-                  <SelectItem value="delivered">Delivered</SelectItem>
-                  <SelectItem value="cancelled">Cancelled</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-semibold">Payment Status</label>
-              <Select
-                value={newPaymentStatus}
-                onValueChange={(val) => setNewPaymentStatus(val as Order["paymentStatus"])}
-              >
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="unpaid">Unpaid</SelectItem>
-                  <SelectItem value="paid">Paid (Includes in Dashboard Revenue)</SelectItem>
-                  <SelectItem value="refunded">Refunded</SelectItem>
-                </SelectContent>
-              </Select>
-              <p className="text-[11px] text-muted-foreground">
-                Revenue on the dashboard updates based on orders with <strong>Paid</strong> payment status.
-              </p>
-            </div>
-          </div>
-
-          <DialogFooter>
-            <Button variant="outline" onClick={() => setStatusModalOrder(null)}>
-              Cancel
-            </Button>
-            <Button
-              variant="luxury"
-              disabled={updateStatusMutation.isPending}
-              onClick={() =>
-                statusModalOrder &&
-                updateStatusMutation.mutate({
-                  orderId: statusModalOrder.id,
-                  status: newStatus,
-                  paymentStatus: newPaymentStatus,
-                })
-              }
-            >
-              {updateStatusMutation.isPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Updating...
-                </>
-              ) : (
-                "Save Changes"
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

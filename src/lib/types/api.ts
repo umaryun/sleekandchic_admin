@@ -90,6 +90,8 @@ export interface Product {
   discount?: number | null;
   categoryId?: string | null;
   inStock: boolean;
+  /** Archived products are hidden from the shop but kept for past orders. */
+  status: "draft" | "active" | "archived";
   image?: string | null;
   images?: ProductImage[];
   variants?: ProductVariant[];
@@ -113,6 +115,7 @@ export interface CreateProductInput {
   discount?: number;
   categoryId?: string;
   inStock?: boolean;
+  status?: "draft" | "active";
   images?: { imageUrl: string; altText?: string }[];
   variants?: {
     size?: string;
@@ -209,8 +212,22 @@ export interface Order {
     postalCode?: string;
   } | null;
   items?: OrderItem[];
+  /** Statuses staff may move this order to next (detail endpoint only). */
+  allowedStatuses?: Order["status"][];
+  timeline?: OrderEvent[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface OrderEvent {
+  id: string;
+  type: "placed" | "payment_received" | "status_changed" | "payment_status_changed" | "cancelled" | "note";
+  fromStatus: string | null;
+  toStatus: string | null;
+  message: string | null;
+  /** Null when the customer or the system did it. */
+  actorName: string | null;
+  createdAt: string;
 }
 
 export interface OrderListResponse {
@@ -222,6 +239,8 @@ export interface UpdateOrderInput {
   orderId: string;
   status?: Order["status"];
   paymentStatus?: Order["paymentStatus"];
+  /** Added to the order's timeline. */
+  note?: string;
 }
 
 // ──────────────────────────────────────────────

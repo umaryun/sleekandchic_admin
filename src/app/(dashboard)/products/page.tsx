@@ -9,7 +9,8 @@ import {
   Search,
   MoreHorizontal,
   Edit,
-  Trash2,
+  Archive,
+  ArchiveRestore,
   Package,
   Loader2,
   Filter,
@@ -46,8 +47,9 @@ import {
 
 export default function ProductsPage() {
   const queryClient = useQueryClient();
-  // Deleting is owner-only on the server; staff don't see the button.
+  // Archiving is owner-only on the server; staff don't see the button.
   const { isSuperAdmin } = useCurrentAdmin();
+  const [showArchived, setShowArchived] = useState(false);
   const [search, setSearch] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [page, setPage] = useState(1);
@@ -61,10 +63,10 @@ export default function ProductsPage() {
 
   // Fetch Products
   const { data, isLoading, isError } = useQuery<ProductListResponse>({
-    queryKey: ["products", search, page],
+    queryKey: ["products", search, page, showArchived],
     queryFn: () =>
       apiClient<ProductListResponse>(
-        `/admin/products?page=${page}&limit=20${search ? `&search=${encodeURIComponent(search)}` : ""}`
+        `/admin/products?page=${page}&limit=20${search ? `&search=${encodeURIComponent(search)}` : ""}${showArchived ? "&status=archived" : ""}`
       ),
   });
 
@@ -82,18 +84,29 @@ export default function ProductsPage() {
     },
   });
 
-  // Delete Product Mutation
+  // Archive: hidden from the shop, kept for past orders, restorable.
   const deleteMutation = useMutation({
     mutationFn: (id: string) =>
       apiClient(`/admin/products/${id}`, {
         method: "DELETE",
         showSuccessToast: true,
-        successMessage: "Product deleted successfully",
+        successMessage: "Product archived",
       }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["products"] });
       setDeleteProduct(null);
     },
+  });
+
+  const restoreMutation = useMutation({
+    mutationFn: (id: string) =>
+      apiClient(`/admin/products/${id}`, {
+        method: "PUT",
+        body: JSON.stringify({ status: "active" }),
+        showSuccessToast: true,
+        successMessage: "Product restored to the shop",
+      }),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["products"] }),
   });
 
   const categoryMap = new Map(categories?.map((c) => [c.id, c.name]));
@@ -136,6 +149,18 @@ export default function ProductsPage() {
             className="pl-9"
           />
         </div>
+
+        <Button
+          variant={showArchived ? "secondary" : "outline"}
+          size="sm"
+          onClick={() => {
+            setShowArchived((v) => !v);
+            setPage(1);
+          }}
+          aria-pressed={showArchived}
+        >
+          {showArchived ? "Showing archived" : "Show archived"}
+        </Button>
 
         <div className="flex items-center gap-2 w-full sm:w-auto">
           <Filter className="h-4 w-4 text-muted-foreground" />
@@ -280,12 +305,18 @@ export default function ProductsPage() {
                         {isSuperAdmin && (
                           <>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              onClick={() => setDeleteProduct(product)}
-                              className="text-destructive focus:bg-destructive/10 focus:text-destructive"
-                            >
-                              <Trash2 className="mr-2 h-4 w-4" /> Delete Product
-                            </DropdownMenuItem>
+                            {product.status === "archived" ? (
+                              <DropdownMenuItem onClick={() => restoreMutation.mutate(product.id)}>
+                                <ArchiveRestore className="mr-2 h-4 w-4" /> Restore to shop
+                              </DropdownMenuItem>
+                            ) : (
+                              <DropdownMenuItem
+                                onClick={() => setDeleteProduct(product)}
+                                className="text-destructive focus:bg-destructive/10 focus:text-destructive"
+                              >
+                                <Archive className="mr-2 h-4 w-4" /> Archive
+                              </DropdownMenuItem>
+                            )}
                           </>
                         )}
                       </DropdownMenuContent>
@@ -302,9 +333,9 @@ export default function ProductsPage() {
       <Dialog open={!!deleteProduct} onOpenChange={() => setDeleteProduct(null)}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Delete Product?</DialogTitle>
+            <DialogTitle>Archive {deleteProduct?.name}?</DialogTitle>
             <DialogDescription>
-              Are you sure you want to delete &quot;{deleteProduct?.name}&quot;? This action cannot be undone and will remove all associated variants and images.
+              It disappears from the shop and can&apos;t be bought, including from bags it&apos;s already in. Past orders keep their details. You can restore it from Show archived.
             </DialogDescription>
           </DialogHeader>
           <DialogFooter>
@@ -318,10 +349,10 @@ export default function ProductsPage() {
             >
               {deleteMutation.isPending ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Deleting...
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" /> Archiving...
                 </>
               ) : (
-                "Delete Product"
+                "Archive"
               )}
             </Button>
           </DialogFooter>
