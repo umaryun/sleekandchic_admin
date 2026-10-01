@@ -16,7 +16,7 @@ import {
   Loader2,
 } from "lucide-react";
 
-import { apiClient, uploadMedia } from "@/src/lib/api-client";
+import { apiClient, uploadMedia, IMAGE_ACCEPT } from "@/src/lib/api-client";
 import { Category } from "@/src/lib/types/api";
 
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/src/components/ui/card";
@@ -344,12 +344,12 @@ export default function CreateProductPage() {
                   <>
                     <Upload className="h-6 w-6 text-muted-foreground mb-2" />
                     <span className="text-xs font-semibold text-foreground">Upload Image</span>
-                    <span className="text-[10px] text-muted-foreground mt-0.5">PNG, JPG, WEBP</span>
+                    <span className="text-[10px] text-muted-foreground mt-0.5">JPEG, PNG or WebP, up to 5 MB</span>
                   </>
                 )}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept={IMAGE_ACCEPT}
                   multiple
                   className="hidden"
                   onChange={handleImageUpload}

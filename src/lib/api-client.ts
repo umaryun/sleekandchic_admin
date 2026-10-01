@@ -82,6 +82,10 @@ export async function apiClient<T>(
   }
 }
 
+/** Image types storage accepts. Use as the file input's `accept` value. */
+export const IMAGE_ACCEPT = "image/jpeg,image/png,image/webp";
+const MAX_IMAGE_BYTES = 5 * 1024 * 1024;
+
 /**
  * Upload file to Supabase Storage via presigned URL returned by POST /admin/media/upload-url
  */
@@ -90,6 +94,13 @@ export async function uploadMedia(
   bucket: "products" | "categories" | "banners"
 ): Promise<{ publicUrl: string; path: string }> {
   try {
+    if (!IMAGE_ACCEPT.split(",").includes(file.type)) {
+      throw new Error(`${file.name}: upload a JPEG, PNG or WebP image`);
+    }
+    if (file.size > MAX_IMAGE_BYTES) {
+      throw new Error(`${file.name} is larger than 5 MB`);
+    }
+
     // 1. Get signed upload URL from backend
     const uploadRes = await apiClient<{
       uploadUrl: string;

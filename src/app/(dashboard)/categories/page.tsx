@@ -17,7 +17,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 
-import { apiClient, uploadMedia } from "@/src/lib/api-client";
+import { apiClient, uploadMedia, IMAGE_ACCEPT } from "@/src/lib/api-client";
 import { Category } from "@/src/lib/types/api";
 import { getImageUrl } from "@/src/lib/utils";
 
@@ -379,7 +379,7 @@ export default function CategoriesPage() {
                   <span>Upload Icon</span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept={IMAGE_ACCEPT}
                     className="hidden"
                     onChange={handleIconUpload}
                     disabled={uploading}

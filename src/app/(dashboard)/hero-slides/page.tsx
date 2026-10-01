@@ -16,7 +16,7 @@ import {
   ExternalLink,
 } from "lucide-react";
 
-import { apiClient, uploadMedia } from "@/src/lib/api-client";
+import { apiClient, uploadMedia, IMAGE_ACCEPT } from "@/src/lib/api-client";
 import { HeroSlide } from "@/src/lib/types/api";
 import { getImageUrl } from "@/src/lib/utils";
 
@@ -331,7 +331,7 @@ export default function HeroSlidesPage() {
                   <span>Upload High-Res Banner Image</span>
                   <input
                     type="file"
-                    accept="image/*"
+                    accept={IMAGE_ACCEPT}
                     className="hidden"
                     onChange={handleImageUpload}
                     disabled={uploading}
