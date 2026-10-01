@@ -543,7 +543,7 @@ export default function AdminTeamPage() {
                 <Input
                   id="admin-email"
                   type="email"
-                  placeholder="jane@slickandchic.com"
+                  placeholder="name@example.com"
                   value={inviteEmail}
                   onChange={(e) => setInviteEmail(e.target.value)}
                   className="pl-9"

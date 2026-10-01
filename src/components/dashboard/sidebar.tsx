@@ -171,7 +171,7 @@ export function Sidebar({ className, onNavigate }: SidebarProps) {
       {!collapsed && (
         <div className="p-4 border-t border-border/40 text-center">
           <p className="text-[11px] text-muted-foreground">
-            © {new Date().getFullYear()} Slickandchic Luxury
+            © {new Date().getFullYear()} Sleekandchic
           </p>
         </div>
       )}

@@ -175,7 +175,7 @@ export default function CreateProductPage() {
             Create New Product
           </h1>
           <p className="text-xs text-muted-foreground uppercase tracking-wider font-semibold">
-            Add a luxury item to your Slickandchic storefront catalog
+            Add a new item to the Sleekandchic shop
           </p>
         </div>
       </div>

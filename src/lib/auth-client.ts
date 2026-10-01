@@ -9,8 +9,9 @@ export const authClient = createAuthClient({
   plugins: [bearer()],
 });
 
-export const TOKEN_KEY = "slickandchick_admin_token";
-export const ADMIN_USER_KEY = "slickandchick_admin_user";
+// Renaming these signs everyone out once; admin sessions only last 12 hours anyway.
+export const TOKEN_KEY = "sleekandchic_admin_token";
+export const ADMIN_USER_KEY = "sleekandchic_admin_user";
 
 export function getStoredToken(): string | null {
   if (typeof window === "undefined") return null;

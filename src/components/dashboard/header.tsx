@@ -159,7 +159,7 @@ export function Header() {
                   </Badge>
                 </div>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {admin?.email || "admin@slickandchic.com"}
+                  {admin?.email}
                 </p>
               </div>
             </DropdownMenuLabel>
