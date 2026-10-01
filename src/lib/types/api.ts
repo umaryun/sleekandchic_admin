@@ -276,6 +276,8 @@ export interface Discount {
   startsAt?: string | null;
   expiresAt?: string | null;
   isActive: boolean;
+  /** What a shopper would get with this code right now. */
+  state: "active" | "paused" | "scheduled" | "expired" | "used_up";
   createdAt: string;
 }
 
