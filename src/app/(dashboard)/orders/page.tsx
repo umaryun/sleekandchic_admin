@@ -12,13 +12,11 @@ import {
   Loader2,
   RefreshCw,
 } from "lucide-react";
-import { toast } from "sonner";
 
 import { apiClient } from "@/src/lib/api-client";
 import { Order, OrderListResponse } from "@/src/lib/types/api";
 import { formatNGN, formatDate } from "@/lib/utils";
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/src/components/ui/card";
 import { Button } from "@/src/components/ui/button";
 import { Input } from "@/src/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/src/components/ui/table";
@@ -151,7 +149,7 @@ export default function OrdersPage() {
         <div className="relative w-full sm:w-72">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
-            placeholder="Search by Order #..."
+            placeholder="Order #, name, phone or email"
             value={search}
             onChange={(e) => { setSearch(e.target.value); setPage(1); }}
             className="pl-9"
@@ -222,8 +220,9 @@ export default function OrdersPage() {
 
                       <TableCell className="text-xs">
                         <div className="flex flex-col">
-                          <span className="font-semibold">{order.customerName || "Guest User"}</span>
-                          <span className="text-muted-foreground">{order.customerEmail || "No email"}</span>
+                          <span className="font-semibold">{order.customerName || "No name given"}</span>
+                          <span className="text-muted-foreground">{order.customerPhone || order.customerEmail || "No contact"}</span>
+                          {order.deliveryState && <span className="text-muted-foreground">{order.deliveryState}</span>}
                         </div>
                       </TableCell>
 
@@ -232,11 +231,18 @@ export default function OrdersPage() {
                       </TableCell>
 
                       <TableCell>
-                        <Badge
-                          variant={order.paymentStatus === "paid" ? "success" : "warning"}
-                        >
-                          {order.paymentStatus}
-                        </Badge>
+                        <div className="flex flex-col items-start gap-1">
+                          <Badge variant={order.paymentStatus === "paid" ? "success" : "warning"}>
+                            {order.paymentStatus === "paid"
+                              ? "Paid"
+                              : order.paymentStatus === "refunded"
+                                ? "Refunded"
+                                : order.paymentMethod === "cod"
+                                  ? "Pay on delivery"
+                                  : "Unpaid"}
+                          </Badge>
+                          {order.shippingMethod === "express" && <Badge variant="info">Express</Badge>}
+                        </div>
                       </TableCell>
 
                       <TableCell>{getStatusBadge(order.status)}</TableCell>

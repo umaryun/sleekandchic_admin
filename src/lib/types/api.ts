@@ -180,11 +180,28 @@ export interface Order {
   userId?: string | null;
   guestEmail?: string | null;
   customerEmail?: string | null;
+  /** The person to deliver to (from the address), else the account name. */
   customerName?: string | null;
+  customerPhone?: string | null;
+  /** Name on the customer's account, when they were signed in. */
+  accountName?: string | null;
+  deliveryState?: string | null;
+  /** Null on orders placed before these were recorded. */
+  paymentMethod?: "paystack" | "cod" | null;
+  shippingMethod?: "standard" | "express" | null;
+  subtotal?: number | null;
+  discountAmount?: number;
+  discountCode?: string | null;
+  shippingFee?: number;
   totalAmount: number;
   status: "pending" | "paid" | "processing" | "shipped" | "delivered" | "cancelled";
   paymentStatus: "unpaid" | "paid" | "refunded";
+  paymentReference?: string | null;
+  paidAt?: string | null;
   shippingAddress?: {
+    firstName?: string;
+    lastName?: string;
+    phone?: string;
     street: string;
     city: string;
     state: string;
