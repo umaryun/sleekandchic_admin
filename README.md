@@ -28,8 +28,8 @@ browser blocks its requests and staff invitations can't link back here.
 
 ## Roles
 
-- **Owner** (`super_admin`): everything, including the team, deleting or
-  archiving, and refunds.
+- **Owner** (`super_admin`): everything, including the team and deleting or
+  archiving.
 - **Staff** (`admin`): day-to-day work (orders, products, stock, promo codes,
   slides, delivery rates).
 
